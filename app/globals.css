@@ -1,33 +1,70 @@
-/* app/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Dancing+Script:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Define our custom font variables */
-@layer base {
-  :root {
-    --font-serif: 'Playfair Display', serif;
-    --font-sans: 'Montserrat', sans-serif;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Custom Scrollbar for a High-End Dark Aesthetic (optional but recommended) */
-/* Works primarily on Webkit browsers (Chrome, Safari) */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0a0118;
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0A11; /* Midnight Black */
+  background: #1a0b2e;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4B0082; /* Royal Plum */
+  background: #b76e79;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #B76E79; /* Rose Gold/Copper Accent */
+  background: #f7a4c8;
+}
+
+/* Selection color */
+::selection {
+  background: #f7a4c8;
+  color: #0a0118;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-slow {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #f7a4c8 0%, #b76e79 50%, #4b0082 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
