@@ -1,32 +1,33 @@
+/* app/globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  background: #0E0B1A; /* Deep Indigo */
-  color: #F4F1DE;
-  overflow-x: hidden;
+/* Define our custom font variables */
+@layer base {
+  :root {
+    --font-serif: 'Playfair Display', serif;
+    --font-sans: 'Montserrat', sans-serif;
+  }
 }
 
-/* Custom Scrollbar hide */
+/* Custom Scrollbar for a High-End Dark Aesthetic (optional but recommended) */
+/* Works primarily on Webkit browsers (Chrome, Safari) */
 ::-webkit-scrollbar {
-  width: 0px;
-  background: transparent;
+  width: 8px;
+  height: 8px;
 }
 
-/* Updated Glass Effect - Richer and Softer */
-.glass-panel {
-  background: rgba(44, 27, 74, 0.4); /* Rich Plum with transparency */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-  transition: all 0.5s ease;
+::-webkit-scrollbar-track {
+  background: #0B0A11; /* Midnight Black */
 }
 
-/* Utility for the new, high-impact buttons (Liquid Glow) */
-.liquid-button {
-    @apply relative overflow-hidden transition-all duration-300;
-    @apply before:content-[''] before:absolute before:inset-0 before:bg-white/10 before:scale-0 before:opacity-0 before:rounded-full before:transition-all before:duration-500 before:ease-out;
-    @apply hover:before:scale-[2.5] hover:before:opacity-100;
+::-webkit-scrollbar-thumb {
+  background: #4B0082; /* Royal Plum */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B76E79; /* Rose Gold/Copper Accent */
 }
