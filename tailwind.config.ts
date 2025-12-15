@@ -23,14 +23,14 @@ const config: Config = {
       animation: {
         "pulse-slow": "pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "float": "float 8s ease-in-out infinite",
-        "aurora": "aurora 15s ease-in-out infinite alternate", // New slow, deep background movement
+        "aurora": "aurora 15s ease-in-out infinite alternate", 
       },
       keyframes: {
         float: {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-20px)" },
         },
-        aurora: { // For the background breathing effect
+        aurora: { 
             "0%": { transform: "translate(0%, 0%)" },
             "100%": { transform: "translate(-5%, -5%)" },
         }
