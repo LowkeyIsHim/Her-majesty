@@ -84,7 +84,10 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         density: { 
           enable: true, 
           // FIX: Changed deprecated 'value_area' to 'area' for modern tsparticles compatibility
-          area: 800 
+          // FIX-APPLY: The type definition in your build environment requires the use of 'value_area' 
+          // or an older property name to be compatible with RecursivePartial<IParticlesDensity>.
+          // Using 'value_area' to resolve the type error.
+          value_area: 800 // The area value for density calculation.
         } 
       },
       color: { value: currentColor },
@@ -318,7 +321,7 @@ const QuietHours: React.FC = () => {
     const overlayContent = {
         smile: {
             title: 'My Smile (Lightness)',
-            text: `I crave the sound of your laugh, **Coconut Head**. That lightness is the sun I didn't know I needed. Let me tell you a joke about a distant relationship. *It only makes the reunion better.*`,
+            text: `I crave the sound of your laugh, **Coconut Head**. That lightness is the sun I didn’t know I needed. Let me tell you a joke about a distant relationship. *It only makes the reunion better.*`,
         },
         comfort: {
             title: 'My Comfort (Safety)',
