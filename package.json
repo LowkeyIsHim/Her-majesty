@@ -1,4 +1,3 @@
-
 {
   "name": "quiet-hours-silvyn",
   "version": "0.1.0",
@@ -10,13 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tsparticles/engine": "^3.3.0",
     "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.3.0",
     "framer-motion": "^11.0.12",
     "lucide-react": "^0.363.0",
     "next": "14.1.4",
     "react": "18",
-    "react-dom": "18",
-    "tsparticles": "^3.3.0"
+    "react-dom": "18"
   },
   "devDependencies": {
     "@types/node": "20",
