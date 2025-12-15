@@ -4,8 +4,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-// --- FIX HERE: Use IParticlesProps for the type definition ---
-import { IParticlesProps } from '@tsparticles/react'; 
+// FIX: Use ParticlesProps for the type definition (standard export)
+// FIX: Use IParticlesDensity in comments for clarity on the error.
+import { ParticlesProps } from '@tsparticles/react';
 import { Heart, ChevronRight, Moon, Sparkles, Wand2 } from 'lucide-react';
 // Conditional import to ensure no SSR/hydration errors with a client-only library
 const Particles = React.lazy(() => import('@tsparticles/react'));
@@ -62,8 +63,9 @@ const buttonVariants: Variants = {
 
 // --- Particles Configuration (Subtle, Luxurious Background) ---
 // Particles must be dynamic based on the interactive state for the depth effect.
-// --- FIX APPLIED: Changed 'value_area' to 'area' for tsparticles v3+ compatibility ---
-const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] => {
+// FIX: Reverting 'area' back to 'value_area' to satisfy the TypeScript type checking 
+// (Type 'RecursivePartial<IParticlesDensity>' still expects the old key).
+const getParticleConfig = (state: InteractiveState): ParticlesProps['options'] => {
   const colorMap = {
     initial: '#B76E79', // Rose Gold
     smile: '#B76E79',
@@ -83,8 +85,8 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         value: 30, 
         density: { 
           enable: true, 
-          // FIX: Renamed value_area to area
-          area: 800 
+          // FIX APPLIED: Reverting from 'area' to 'value_area' for TS compilation.
+          value_area: 800 
         } 
       },
       color: { value: currentColor },
@@ -313,6 +315,7 @@ const QuietHours: React.FC = () => {
             title: 'My Comfort (Safety)',
             text: `You are my **Omalicha**, the beautiful one. With you, the world is quiet. I'm building a soft space next to me, just for your head. You don't have to deflect with me.`,
         },
+    },
         desire: {
             title: 'My Desire (Explicit Flirtation)',
             text: `I remember the temperature of your skin. If tomorrow lets us, I’m claiming that space again. You are the only competition I'm focused on winning. **I'm claiming every part of you that keeps me awake at night.**`,
