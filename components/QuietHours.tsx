@@ -83,8 +83,9 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         value: 30, 
         density: { 
           enable: true, 
-          // FIX APPLIED: Changed 'value_area' to 'area' for modern tsparticles versions
-          area: 800 
+          // FIX APPLIED: Reverted to 'value_area' for robust compatibility with
+          // the version detected in the build environment, resolving the type error.
+          value_area: 800 
         } 
       },
       color: { value: currentColor },
@@ -99,14 +100,14 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         random: true,
         anim: { enable: true, speed: 1.5, size_min: 0.5, sync: false },
       },
-      links: { enable: false }, // Using 'links' instead of deprecated 'line_linked' (for robustness)
+      links: { enable: false }, // Using 'links' (modern/robust)
       move: {
         enable: true,
         speed: 0.5, // Very slow, gentle drift
         direction: 'none',
         random: true,
         straight: false,
-        outModes: { // Using outModes instead of out_mode for robustness
+        outModes: { // Using outModes (modern/robust)
           default: 'out'
         },
         bounce: false,
@@ -451,9 +452,19 @@ const QuietHours: React.FC = () => {
 
       {/* Particles Background (Must use React.lazy for SSR safety) */}
       <React.Suspense fallback={null}>
-        <Particles options={getParticleConfig(interactiveState)} />
+        {/* Added key={interactiveState} to force re-render/re-initialization of particles
+            when the interactive state changes, ensuring the color update. */}
+        <Particles key={interactiveState} options={getParticleConfig(interactiveState)} />
       </React.Suspense>
 
+      {/* Cinematic Loading Overlay (Fades slowly on entry) */}
+      <motion.div
+        initial={{ opacity: 1 }}
+        animate={{ opacity: step === 0 ? 1 : 0 }}
+        transition={{ duration: 3.5, delay: 0.5, ease: 'easeOut' }} // Extra slow, luxurious fade
+        className="absolute inset-0 bg-gradient-to-t from-midnight/90 to-midnight z-50 pointer-events-none"
+      />
+      
       {/* Main Content Area */}
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <AnimatePresence mode="wait">
@@ -486,14 +497,6 @@ const QuietHours: React.FC = () => {
           )}
         </AnimatePresence>
       </div>
-
-      {/* Cinematic Loading Overlay (Fades slowly on entry) */}
-      <motion.div
-        initial={{ opacity: 1 }}
-        animate={{ opacity: step === 0 ? 1 : 0 }}
-        transition={{ duration: 3.5, delay: 0.5, ease: 'easeOut' }} // Extra slow, luxurious fade
-        className="absolute inset-0 bg-gradient-to-t from-midnight/90 to-midnight z-50 pointer-events-none"
-      />
     </motion.div>
   );
 };
