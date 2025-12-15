@@ -4,7 +4,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Type as ParticlesType, IParticlesProps } from '@tsparticles/react';
+// --- FIX HERE: Use IParticlesProps instead of ParticlesProps ---
+// We also remove the unnecessary Type import.
+import { IParticlesProps } from '@tsparticles/react'; 
 import { Heart, ChevronRight, Moon, Sparkles, Wand2 } from 'lucide-react';
 // Conditional import to ensure no SSR/hydration errors with a client-only library
 const Particles = React.lazy(() => import('@tsparticles/react'));
@@ -61,6 +63,7 @@ const buttonVariants: Variants = {
 
 // --- Particles Configuration (Subtle, Luxurious Background) ---
 // Particles must be dynamic based on the interactive state for the depth effect.
+// --- FIX HERE: Use IParticlesProps['options'] to reference the correct type ---
 const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] => {
   const colorMap = {
     initial: '#B76E79', // Rose Gold
@@ -481,4 +484,3 @@ const QuietHours: React.FC = () => {
 };
 
 export default QuietHours;
-
