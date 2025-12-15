@@ -4,7 +4,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ParticlesProps } from '@tsparticles/react';
+import { Type as ParticlesType, IParticlesProps } from '@tsparticles/react';
 import { Heart, ChevronRight, Moon, Sparkles, Wand2 } from 'lucide-react';
 // Conditional import to ensure no SSR/hydration errors with a client-only library
 const Particles = React.lazy(() => import('@tsparticles/react'));
@@ -61,7 +61,7 @@ const buttonVariants: Variants = {
 
 // --- Particles Configuration (Subtle, Luxurious Background) ---
 // Particles must be dynamic based on the interactive state for the depth effect.
-const getParticleConfig = (state: InteractiveState): ParticlesProps['options'] => {
+const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] => {
   const colorMap = {
     initial: '#B76E79', // Rose Gold
     smile: '#B76E79',
