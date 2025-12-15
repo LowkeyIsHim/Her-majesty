@@ -4,11 +4,10 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import type { IParticlesProps } from '@tsparticles/react';
 import { Heart, ChevronRight, Moon, Sparkles, Wand2 } from 'lucide-react';
-
-// Conditional import to ensure no SSR/hydration errors with a client-only library
-const Particles = React.lazy(() => import('@tsparticles/react'));
+import { Container, type ISourceOptions } from '@tsparticles/engine';
+import Particles, { initParticlesEngine } from '@tsparticles/react';
+import { loadSlim } from '@tsparticles/slim';
 
 // --- Type and State Definitions ---
 type FlowStep = 0 | 1 | 2 | 3 | 4;
@@ -61,7 +60,7 @@ const buttonVariants: Variants = {
 };
 
 // --- Particles Configuration ---
-const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] => {
+const getParticleConfig = (state: InteractiveState): ISourceOptions => {
   const colorMap = {
     initial: '#B76E79',
     smile: '#B76E79',
@@ -87,21 +86,19 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
       shape: { type: 'circle' },
       opacity: {
         value: 0.5,
-        random: true,
         animation: { 
           enable: true, 
           speed: 0.5, 
-          minimumValue: 0.1, 
+          min: 0.1, 
           sync: false 
         }, 
       },
       size: {
         value: 3,
-        random: true,
         animation: { 
           enable: true, 
           speed: 1.5, 
-          minimumValue: 0.5, 
+          min: 0.5, 
           sync: false 
         },
       },
@@ -115,8 +112,6 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         outModes: { 
           default: 'out'
         },
-        bounce: false,
-        attract: { enable: false, rotateX: 600, rotateY: 1200 },
       },
     },
     interactivity: { 
@@ -128,7 +123,7 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
       } 
     },
     detectRetina: true,
-  } as IParticlesProps['options'];
+  };
 };
 
 // --- Content for STEP 2 ---
@@ -170,6 +165,20 @@ const QuietHours: React.FC = () => {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isExiting, setIsExiting] = useState(false);
+  const [particlesInit, setParticlesInit] = useState(false);
+
+  // Initialize particles engine
+  useEffect(() => {
+    initParticlesEngine(async (engine) => {
+      await loadSlim(engine);
+    }).then(() => {
+      setParticlesInit(true);
+    });
+  }, []);
+
+  const particlesLoaded = async (container?: Container): Promise<void> => {
+    console.log('Particles loaded', container);
+  };
 
   // --- Audio Logic ---
   const playAudio = useCallback(() => {
@@ -454,9 +463,13 @@ const QuietHours: React.FC = () => {
     >
       <audio ref={audioRef} src="/silvyn.mp3" preload="auto" />
 
-      <React.Suspense fallback={null}>
-        <Particles key={interactiveState} options={getParticleConfig(interactiveState)} />
-      </React.Suspense>
+      {particlesInit && (
+        <Particles
+          id="tsparticles"
+          particlesLoaded={particlesLoaded}
+          options={getParticleConfig(interactiveState)}
+        />
+      )}
 
       <motion.div
         initial={{ opacity: 1 }}
