@@ -83,11 +83,10 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         value: 30, 
         density: { 
           enable: true, 
-          // FIX: Changed deprecated 'value_area' to 'area' for modern tsparticles compatibility
-          // FIX-APPLY: The type definition in your build environment requires the use of 'value_area' 
-          // or an older property name to be compatible with RecursivePartial<IParticlesDensity>.
-          // Using 'value_area' to resolve the type error.
-          value_area: 800 // The area value for density calculation.
+          // FIX-APPLY: Removed the incompatible 'value_area' (and 'area') property.
+          // The current version of IParticlesDensity does not accept this property 
+          // directly. Relying on the default density calculation is the safest path 
+          // to fix the type error.
         } 
       },
       color: { value: currentColor },
