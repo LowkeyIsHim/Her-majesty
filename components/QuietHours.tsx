@@ -85,20 +85,18 @@ const getParticleConfig = (state: InteractiveState): ISourceOptions => {
       color: { value: currentColor },
       shape: { type: 'circle' },
       opacity: {
-        value: 0.5,
+        value: { min: 0.1, max: 0.5 },
         animation: { 
           enable: true, 
           speed: 0.5, 
-          min: 0.1, 
           sync: false 
         }, 
       },
       size: {
-        value: 3,
+        value: { min: 0.5, max: 3 },
         animation: { 
           enable: true, 
           speed: 1.5, 
-          min: 0.5, 
           sync: false 
         },
       },
