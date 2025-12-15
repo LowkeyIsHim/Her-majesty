@@ -20,23 +20,30 @@ export default function Background() {
     <div className="fixed inset-0 -z-10 overflow-hidden">
       {/* Deep Breathing Gradient */}
       <motion.div 
-        className="absolute inset-0 bg-gradient-to-br from-midnight via-[#1a0f1a] to-[#0f0510]"
+            {/* Deep Aurora Gradient */}
+      <motion.div 
+        className="absolute inset-0 bg-gradient-to-br from-deep-indigo via-rich-plum/50 to-deep-indigo"
         animate={{
-            background: [
-                "linear-gradient(to bottom right, #0F0C15, #1a0f1a, #0f0510)",
-                "linear-gradient(to bottom right, #0F0C15, #2D1B2E, #0F0C15)",
-                "linear-gradient(to bottom right, #0F0C15, #1a0f1a, #0f0510)"
-            ]
+            // Slow, perpetual drift for the Aurora effect
+            x: ["0%", "-5%"], 
+            y: ["0%", "-5%"]
         }}
+        transition={{ 
+            duration: 15, 
+            repeat: Infinity, 
+            ease: "easeInOut", 
+            repeatType: "mirror" 
+        }}
+      />
+      
+      {/* Subtle Glow Orb (Amber focus) */}
+      <motion.div 
+        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-soft-amber/10 rounded-full blur-[120px] opacity-50"
+        animate={{ opacity: [0.2, 0.4, 0.2], scale: [1, 1.1, 1] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
+      {/* ... rest of the file (Particles) ... */}
 
-      {/* Subtle Glow Orb */}
-      <motion.div 
-        className="absolute top-1/4 left-1/4 w-96 h-96 bg-rose/10 rounded-full blur-[100px]"
-        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.2, 1] }}
-        transition={{ duration: 8, repeat: Infinity }}
-      />
 
       {init && (
         <Particles
