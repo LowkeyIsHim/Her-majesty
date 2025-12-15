@@ -62,7 +62,16 @@ export default function Background() {
                 straight: false,
               },
               number: { density: { enable: true }, value: 60 },
-              opacity: { value: 0.3, minimumValue: 0.1, animation: { enable: true, speed: 0.5 } },
+              // --- FIX APPLIED HERE ---
+              opacity: { 
+                value: { min: 0.1, max: 0.3 }, // Define the pulsing range
+                animation: { 
+                  enable: true, 
+                  speed: 0.5,
+                  sync: false 
+                } 
+              },
+              // -----------------------
               shape: { type: "circle" },
               size: { value: { min: 1, max: 2 } },
             },
