@@ -8,6 +8,7 @@
   overflow-x: hidden;
 }
 
+/* Custom Scrollbar hide */
 ::-webkit-scrollbar {
   width: 0px;
   background: transparent;
@@ -23,7 +24,7 @@
   transition: all 0.5s ease;
 }
 
-/* Utility for the new, high-impact buttons */
+/* Utility for the new, high-impact buttons (Liquid Glow) */
 .liquid-button {
     @apply relative overflow-hidden transition-all duration-300;
     @apply before:content-[''] before:absolute before:inset-0 before:bg-white/10 before:scale-0 before:opacity-0 before:rounded-full before:transition-all before:duration-500 before:ease-out;
