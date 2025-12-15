@@ -5,7 +5,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 // FIX: Use ParticlesProps for the type definition (standard export)
-// FIX: Use IParticlesDensity in comments for clarity on the error.
 import { ParticlesProps } from '@tsparticles/react';
 import { Heart, ChevronRight, Moon, Sparkles, Wand2 } from 'lucide-react';
 // Conditional import to ensure no SSR/hydration errors with a client-only library
@@ -63,8 +62,6 @@ const buttonVariants: Variants = {
 
 // --- Particles Configuration (Subtle, Luxurious Background) ---
 // Particles must be dynamic based on the interactive state for the depth effect.
-// FIX: Reverting 'area' back to 'value_area' to satisfy the TypeScript type checking 
-// (Type 'RecursivePartial<IParticlesDensity>' still expects the old key).
 const getParticleConfig = (state: InteractiveState): ParticlesProps['options'] => {
   const colorMap = {
     initial: '#B76E79', // Rose Gold
@@ -315,7 +312,8 @@ const QuietHours: React.FC = () => {
             title: 'My Comfort (Safety)',
             text: `You are my **Omalicha**, the beautiful one. With you, the world is quiet. I'm building a soft space next to me, just for your head. You don't have to deflect with me.`,
         },
-    },
+        // FIX APPLIED: Removed the misplaced '}', which was prematurely closing the object,
+        // and the extraneous comma.
         desire: {
             title: 'My Desire (Explicit Flirtation)',
             text: `I remember the temperature of your skin. If tomorrow lets us, I’m claiming that space again. You are the only competition I'm focused on winning. **I'm claiming every part of you that keeps me awake at night.**`,
