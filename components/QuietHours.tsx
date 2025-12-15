@@ -4,7 +4,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-// FIX HERE: Use IParticlesProps and remove unnecessary Type import
+// --- FIX HERE: Use IParticlesProps for the type definition ---
 import { IParticlesProps } from '@tsparticles/react'; 
 import { Heart, ChevronRight, Moon, Sparkles, Wand2 } from 'lucide-react';
 // Conditional import to ensure no SSR/hydration errors with a client-only library
@@ -62,7 +62,7 @@ const buttonVariants: Variants = {
 
 // --- Particles Configuration (Subtle, Luxurious Background) ---
 // Particles must be dynamic based on the interactive state for the depth effect.
-// FIX HERE: Use IParticlesProps['options'] and update density property.
+// --- FIX APPLIED: Changed 'value_area' to 'area' for tsparticles v3+ compatibility ---
 const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] => {
   const colorMap = {
     initial: '#B76E79', // Rose Gold
@@ -83,7 +83,7 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         value: 30, 
         density: { 
           enable: true, 
-          // FIX: Changed 'value_area' to 'area' for tsparticles v3+
+          // FIX: Renamed value_area to area
           area: 800 
         } 
       },
@@ -92,33 +92,26 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
       opacity: {
         value: 0.5,
         random: true,
-        animation: { enable: true, speed: 0.5, minimumValue: 0.1, sync: false },
+        anim: { enable: true, speed: 0.5, opacity_min: 0.1, sync: false },
       },
       size: {
-        value: { min: 0.5, max: 3 },
+        value: 3,
         random: true,
-        animation: { enable: true, speed: 1.5, minimumValue: 0.5, sync: false },
+        anim: { enable: true, speed: 1.5, size_min: 0.5, sync: false },
       },
-      links: { enable: false },
+      line_linked: { enable: false },
       move: {
         enable: true,
         speed: 0.5, // Very slow, gentle drift
         direction: 'none',
         random: true,
         straight: false,
-        outModes: 'out',
+        out_mode: 'out',
         bounce: false,
         attract: { enable: false, rotateX: 600, rotateY: 1200 },
       },
     },
-    interactivity: { 
-        events: { 
-            onHover: { 
-                enable: true, 
-                mode: 'repulse' 
-            } 
-        } 
-    },
+    interactivity: { events: { onHover: { enable: true, mode: 'repulse' } } },
     detectRetina: true,
   };
 };
