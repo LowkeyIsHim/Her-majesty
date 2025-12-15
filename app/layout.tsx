@@ -1,23 +1,12 @@
-// app/layout.tsx
+import './globals.css';
+import type { Metadata } from 'next';
 
-import './globals.css'; // Assuming this imports Tailwind
-import { Playfair_Display, Montserrat } from 'next/font/google';
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  display: 'swap',
-});
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-export const metadata = {
-  title: 'Quiet Hours with Silvyn',
-  description: 'A quiet place, reserved for my babe.',
+export const metadata: Metadata = {
+  title: 'For Silvyn - A Quiet Space',
+  description: 'A place built with love, just for you',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -26,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${montserrat.variable}`}>
+    <html lang="en">
       <body>{children}</body>
     </html>
   );
