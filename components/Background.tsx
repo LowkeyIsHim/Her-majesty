@@ -62,7 +62,7 @@ export default function Background() {
                 straight: false,
               },
               number: { density: { enable: true }, value: 60 },
-              opacity: { value: 0.3, animation: { enable: true, speed: 0.5, minimumValue: 0.1 } },
+              opacity: { value: 0.3, minimumValue: 0.1, animation: { enable: true, speed: 0.5 } },
               shape: { type: "circle" },
               size: { value: { min: 1, max: 2 } },
             },
