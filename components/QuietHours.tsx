@@ -4,7 +4,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Type as ParticlesType, ParticlesProps } from '@tsparticles/react';
+import { ParticlesProps } from '@tsparticles/react';
 import { Heart, ChevronRight, Moon, Sparkles, Wand2 } from 'lucide-react';
 // Conditional import to ensure no SSR/hydration errors with a client-only library
 const Particles = React.lazy(() => import('@tsparticles/react'));
