@@ -83,9 +83,8 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         value: 30, 
         density: { 
           enable: true, 
-          // FIX APPLIED: Reverted to 'value_area' for robust compatibility with
-          // the version detected in the build environment, resolving the type error.
-          value_area: 800 
+          // FIX: Changed deprecated 'value_area' to 'area' for modern tsparticles compatibility
+          area: 800 
         } 
       },
       color: { value: currentColor },
@@ -93,21 +92,23 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
       opacity: {
         value: 0.5,
         random: true,
-        anim: { enable: true, speed: 0.5, opacity_min: 0.1, sync: false },
+        animation: { enable: true, speed: 0.5, minimumValue: 0.1, sync: false }, // FIX: Changed 'anim' to 'animation' and 'opacity_min' to 'minimumValue'
       },
       size: {
         value: 3,
         random: true,
-        anim: { enable: true, speed: 1.5, size_min: 0.5, sync: false },
+        animation: { enable: true, speed: 1.5, minimumValue: 0.5, sync: false }, // FIX: Changed 'anim' to 'animation' and 'size_min' to 'minimumValue'
       },
-      links: { enable: false }, // Using 'links' (modern/robust)
+      // FIX: Changed deprecated 'line_linked' to 'links'
+      links: { enable: false },
       move: {
         enable: true,
         speed: 0.5, // Very slow, gentle drift
         direction: 'none',
         random: true,
         straight: false,
-        outModes: { // Using outModes (modern/robust)
+        // FIX: Changed deprecated 'out_mode' to 'outModes'
+        outModes: { 
           default: 'out'
         },
         bounce: false,
