@@ -4,10 +4,12 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-// FIX APPLIED: Changed 'ParticlesProps' to the correct exported type 'IParticlesProps'
-import { IParticlesProps } from '@tsparticles/react'; 
+// FIX: Using IParticlesProps for correct typing
+import type { IParticlesProps } from '@tsparticles/react';
 import { Heart, ChevronRight, Moon, Sparkles, Wand2 } from 'lucide-react';
+
 // Conditional import to ensure no SSR/hydration errors with a client-only library
+// Note: Lazy loading is used because Particles uses client-side APIs.
 const Particles = React.lazy(() => import('@tsparticles/react'));
 
 // --- Type and State Definitions ---
@@ -61,8 +63,6 @@ const buttonVariants: Variants = {
 };
 
 // --- Particles Configuration (Subtle, Luxurious Background) ---
-// Particles must be dynamic based on the interactive state for the depth effect.
-// FIX APPLIED: Updated the function signature to use IParticlesProps
 const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] => {
   const colorMap = {
     initial: '#B76E79', // Rose Gold
@@ -83,7 +83,8 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         value: 30, 
         density: { 
           enable: true, 
-          value_area: 800 
+          // FIX APPLIED: Changed 'value_area' to 'area' for modern tsparticles versions
+          area: 800 
         } 
       },
       color: { value: currentColor },
@@ -98,19 +99,28 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         random: true,
         anim: { enable: true, speed: 1.5, size_min: 0.5, sync: false },
       },
-      line_linked: { enable: false },
+      links: { enable: false }, // Using 'links' instead of deprecated 'line_linked' (for robustness)
       move: {
         enable: true,
         speed: 0.5, // Very slow, gentle drift
         direction: 'none',
         random: true,
         straight: false,
-        out_mode: 'out',
+        outModes: { // Using outModes instead of out_mode for robustness
+          default: 'out'
+        },
         bounce: false,
         attract: { enable: false, rotateX: 600, rotateY: 1200 },
       },
     },
-    interactivity: { events: { onHover: { enable: true, mode: 'repulse' } } },
+    interactivity: { 
+      events: { 
+        onHover: { 
+          enable: true, 
+          mode: 'repulse' 
+        } 
+      } 
+    },
     detectRetina: true,
   };
 };
