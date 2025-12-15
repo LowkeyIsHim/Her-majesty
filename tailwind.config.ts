@@ -1,42 +1,40 @@
-import type { Config } from "tailwindcss";
+// tailwind.config.ts
+
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
       colors: {
-        // Updated Palette for Regal Intimacy
-        'deep-indigo': '#0E0B1A', // Deeper, richer base
-        'rich-plum': '#2C1B4A',   // Accent for glass panels
-        'soft-amber': '#E3B980',  // High-contrast, warm highlight
-        'desire-rose': '#D07584', // Primary emotional accent
-        'starlight': '#F4F1DE',
+        'midnight': '#0B0A11', // Deepest Midnight Black
+        'plum': '#4B0082',     // Royal Plum
+        'rose-gold': '#B76E79', // Soft Rose Gold/Copper Accent
+        'copper': '#B87333',   // A slightly richer Copper
+        'lightness-bg': '#B76E7940', // Semi-transparent Rose Gold for interactive state
+        'comfort-bg': '#4B008240',   // Semi-transparent Plum for interactive state
+        'desire-bg': '#B8733340',    // Semi-transparent Copper for interactive state
       },
       fontFamily: {
-        serif: ['var(--font-playfair)'],
-        sans: ['var(--font-inter)'],
+        serif: ['"Playfair Display"', 'serif'], // Cinematic, elegant font
+        sans: ['"Montserrat"', 'sans-serif'],   // Clean, readable sans-serif
       },
       animation: {
-        "pulse-slow": "pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "float": "float 8s ease-in-out infinite",
-        "aurora": "aurora 15s ease-in-out infinite alternate", 
+        // Essential for the slow, cinematic feel (1.5s+ duration)
+        'slow-pulse': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'slow-spin': 'spin 5s linear infinite',
       },
-      keyframes: {
-        float: {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-20px)" },
-        },
-        aurora: { 
-            "0%": { transform: "translate(0%, 0%)" },
-            "100%": { transform: "translate(-5%, -5%)" },
-        }
-      }
+      transitionDuration: {
+        'slow': '1500ms', // Custom slow transition duration
+        'luxury': '2000ms', // Even slower, for main component transitions
+      },
     },
   },
   plugins: [],
 };
+
 export default config;
