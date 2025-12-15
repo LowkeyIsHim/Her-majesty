@@ -18,9 +18,7 @@ export default function Background() {
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
-      {/* Deep Breathing Gradient */}
-      <motion.div 
-            {/* Deep Aurora Gradient */}
+      {/* Deep Aurora Gradient - Uses the new Tailwind Keyframe */}
       <motion.div 
         className="absolute inset-0 bg-gradient-to-br from-deep-indigo via-rich-plum/50 to-deep-indigo"
         animate={{
@@ -42,7 +40,6 @@ export default function Background() {
         animate={{ opacity: [0.2, 0.4, 0.2], scale: [1, 1.1, 1] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
-      {/* ... rest of the file (Particles) ... */}
 
 
       {init && (
@@ -69,16 +66,15 @@ export default function Background() {
                 straight: false,
               },
               number: { density: { enable: true }, value: 60 },
-              // --- FIX APPLIED HERE ---
+              // Corrected V3 opacity animation structure:
               opacity: { 
-                value: { min: 0.1, max: 0.3 }, // Define the pulsing range
+                value: { min: 0.1, max: 0.3 }, 
                 animation: { 
                   enable: true, 
                   speed: 0.5,
                   sync: false 
                 } 
               },
-              // -----------------------
               shape: { type: "circle" },
               size: { value: { min: 1, max: 2 } },
             },
