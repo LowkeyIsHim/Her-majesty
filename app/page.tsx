@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Background from "@/components/Background";
 import AudioPlayer from "@/components/AudioPlayer";
