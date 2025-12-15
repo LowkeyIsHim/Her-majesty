@@ -83,10 +83,8 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
         value: 30, 
         density: { 
           enable: true, 
-          // FIX-APPLY: Removed the incompatible 'value_area' (and 'area') property.
-          // The current version of IParticlesDensity does not accept this property 
-          // directly. Relying on the default density calculation is the safest path 
-          // to fix the type error.
+          // FIX-1: Removed the incompatible density area property ('area' and 'value_area') 
+          // to comply with current IParticlesDensity type definition.
         } 
       },
       color: { value: currentColor },
@@ -94,12 +92,16 @@ const getParticleConfig = (state: InteractiveState): IParticlesProps['options'] 
       opacity: {
         value: 0.5,
         random: true,
-        animation: { enable: true, speed: 0.5, minimumValue: 0.1, sync: false }, // FIX: Changed 'anim' to 'animation' and 'opacity_min' to 'minimumValue'
+        // FIX-2: Reverting 'minimumValue' back to the type-compatible 'opacity_min' 
+        // to resolve the latest type error.
+        animation: { enable: true, speed: 0.5, opacity_min: 0.1, sync: false }, 
       },
       size: {
         value: 3,
         random: true,
-        animation: { enable: true, speed: 1.5, minimumValue: 0.5, sync: false }, // FIX: Changed 'anim' to 'animation' and 'size_min' to 'minimumValue'
+        // FIX-3: Reverting 'minimumValue' back to the type-compatible 'size_min' 
+        // to resolve the latest type error.
+        animation: { enable: true, speed: 1.5, size_min: 0.5, sync: false },
       },
       // FIX: Changed deprecated 'line_linked' to 'links'
       links: { enable: false },
