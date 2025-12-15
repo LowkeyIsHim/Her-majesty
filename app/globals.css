@@ -3,20 +3,29 @@
 @tailwind utilities;
 
 :root {
-  background: #0F0C15;
+  background: #0E0B1A; /* Deep Indigo */
   color: #F4F1DE;
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar hide */
 ::-webkit-scrollbar {
   width: 0px;
   background: transparent;
 }
 
+/* Updated Glass Effect - Richer and Softer */
 .glass-panel {
-  background: rgba(45, 27, 46, 0.3);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(44, 27, 74, 0.4); /* Rich Plum with transparency */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  transition: all 0.5s ease;
+}
+
+/* Utility for the new, high-impact buttons */
+.liquid-button {
+    @apply relative overflow-hidden transition-all duration-300;
+    @apply before:content-[''] before:absolute before:inset-0 before:bg-white/10 before:scale-0 before:opacity-0 before:rounded-full before:transition-all before:duration-500 before:ease-out;
+    @apply hover:before:scale-[2.5] hover:before:opacity-100;
 }
