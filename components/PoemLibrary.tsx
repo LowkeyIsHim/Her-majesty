@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowLeft, Heart, BookOpen, Sparkles, X } from 'lucide-react';
+import { Search, ArrowLeft, Heart, BookOpen, Sparkles, X, Volume2, VolumeX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { poems, type Poem } from '@/data/poems';
 import ParticlesBackground from './ParticlesBackground';
@@ -55,10 +55,61 @@ const moodColors: Record<string, string> = {
   final: '#4c0519',
 };
 
+// Map moods to audio files
+const moodAudio: Record<string, string> = {
+  romantic: '/sounds/romantic.mp3',
+  playful: '/sounds/playful.mp3',
+  spicy: '/sounds/spicy.mp3',
+  comfort: '/sounds/comfort.mp3',
+  deep: '/sounds/deep.mp3',
+  longing: '/sounds/romantic.mp3',
+  honest: '/sounds/deep.mp3',
+  empowering: '/sounds/playful.mp3',
+  gentle: '/sounds/comfort.mp3',
+  intimate: '/sounds/spicy.mp3',
+  confident: '/sounds/spicy.mp3',
+  peaceful: '/sounds/comfort.mp3',
+  hopeful: '/sounds/romantic.mp3',
+  teasing: '/sounds/playful.mp3',
+  'late-night': '/sounds/deep.mp3',
+  direct: '/sounds/spicy.mp3',
+  safe: '/sounds/comfort.mp3',
+  light: '/sounds/playful.mp3',
+  joyful: '/sounds/playful.mp3',
+  future: '/sounds/romantic.mp3',
+  committed: '/sounds/romantic.mp3',
+  persistent: '/sounds/deep.mp3',
+  cosmic: '/sounds/deep.mp3',
+  fated: '/sounds/romantic.mp3',
+  reflective: '/sounds/deep.mp3',
+  possessive: '/sounds/spicy.mp3',
+  anticipatory: '/sounds/spicy.mp3',
+  heated: '/sounds/spicy.mp3',
+  admiring: '/sounds/romantic.mp3',
+  genuine: '/sounds/romantic.mp3',
+  curious: '/sounds/playful.mp3',
+  steadfast: '/sounds/deep.mp3',
+  tender: '/sounds/romantic.mp3',
+  patient: '/sounds/comfort.mp3',
+  competitive: '/sounds/spicy.mp3',
+  passionate: '/sounds/spicy.mp3',
+  determined: '/sounds/spicy.mp3',
+  vulnerable: '/sounds/comfort.mp3',
+  inviting: '/sounds/romantic.mp3',
+  accepting: '/sounds/comfort.mp3',
+  adoring: '/sounds/romantic.mp3',
+  proving: '/sounds/spicy.mp3',
+  certain: '/sounds/deep.mp3',
+  forward: '/sounds/romantic.mp3',
+  final: '/sounds/deep.mp3',
+};
+
 const PoemLibrary: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [selectedPoem, setSelectedPoem] = useState<Poem | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
 
   // Get all unique moods
@@ -85,9 +136,56 @@ const PoemLibrary: React.FC = () => {
 
   const getMoodColor = (mood: string) => moodColors[mood] || '#f7a4c8';
 
+  // Get audio file for poem based on primary mood
+  const getPoemAudio = (poem: Poem): string => {
+    const primaryMood = poem.mood[0];
+    return moodAudio[primaryMood] || '/sounds/romantic.mp3';
+  };
+
+  // Play audio when poem is selected
+  useEffect(() => {
+    if (selectedPoem && !isMuted) {
+      const audioSrc = getPoemAudio(selectedPoem);
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = audioSrc;
+        audioRef.current.volume = 0.3;
+        audioRef.current.loop = true;
+        
+        audioRef.current.play().catch((error) => {
+          console.warn('Audio playback failed:', error);
+        });
+      }
+    } else if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [selectedPoem, isMuted]);
+
+  // Toggle mute
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (audioRef.current) {
+      if (!isMuted) {
+        audioRef.current.pause();
+      } else if (selectedPoem) {
+        audioRef.current.play().catch(console.warn);
+      }
+    }
+  };
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-midnight via-deep-purple to-midnight">
       <ParticlesBackground color={selectedMood ? getMoodColor(selectedMood) : '#f7a4c8'} density={25} />
+
+      {/* Audio element */}
+      <audio ref={audioRef} preload="auto" />
 
       {/* Back button */}
       <motion.button
@@ -100,6 +198,18 @@ const PoemLibrary: React.FC = () => {
         <ArrowLeft className="w-5 h-5" />
         <span>Home</span>
       </motion.button>
+
+      {/* Mute toggle button */}
+      {selectedPoem && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={toggleMute}
+          className="absolute top-8 right-8 z-50 p-3 glass rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-smooth"
+        >
+          {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+        </motion.button>
+      )}
 
       <div className="relative z-10 px-4 py-20">
         {/* Header */}
@@ -114,7 +224,7 @@ const PoemLibrary: React.FC = () => {
             <h1 className="font-serif text-5xl sm:text-7xl gradient-text">Poem Library</h1>
           </div>
           <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto">
-            Words written for you, Silvyn. Search by mood, keyword, or just explore what resonates tonight.
+            Words written for you, Silvyn. Each poem has its own soundtrack—just click to read and listen.
           </p>
         </motion.div>
 
@@ -231,7 +341,7 @@ const PoemLibrary: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
         >
-          Showing {filteredPoems.length} of {poems.length} poems written for you
+          Showing {filteredPoems.length} of {poems.length} poems • Each with its own soundtrack
         </motion.p>
       </div>
 
@@ -264,7 +374,10 @@ const PoemLibrary: React.FC = () => {
               {/* Poem content */}
               <div className="space-y-6">
                 <div>
-                  <Heart className="w-10 h-10 text-soft-pink mb-4" fill="currentColor" />
+                  <div className="flex items-center gap-3 mb-4">
+                    <Heart className="w-10 h-10 text-soft-pink" fill="currentColor" />
+                    {!isMuted && <Volume2 className="w-6 h-6 text-soft-pink/60 animate-pulse" />}
+                  </div>
                   <h2 className="font-serif text-4xl sm:text-5xl text-white mb-2">{selectedPoem.title}</h2>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {selectedPoem.mood.map((mood) => (
