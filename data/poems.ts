@@ -55,7 +55,7 @@ I see you. Fully.
 And I'm not going anywhere.`,
     mood: ['empowering', 'romantic', 'honest'],
     author: 'Ayomide',
-    dedication: 'For the one who forgets she's royalty',
+    dedication: 'For the one who forgets she is royalty',
   },
   {
     id: '3',
@@ -79,7 +79,7 @@ But know this: I see through it all,
 And I'm staying anyway.`,
     mood: ['playful', 'honest', 'teasing'],
     author: 'Ayomide',
-    dedication: 'For Silvyn, who thinks she's sneaky',
+    dedication: 'For Silvyn, who thinks she is sneaky',
   },
   {
     id: '4',
@@ -213,7 +213,7 @@ Just presence.
 And I'm working toward that every single day.`,
     mood: ['hopeful', 'future', 'committed'],
     author: 'Ayomide',
-    dedication: 'For what's coming',
+    dedication: 'For what is coming',
   },
   {
     id: '10',
@@ -301,7 +301,7 @@ I'm all in. Completely.
 And I'm claiming every part of you that you'll give me.`,
     mood: ['confident', 'direct', 'possessive'],
     author: 'Ayomide',
-    dedication: 'For the one who's already mine',
+    dedication: 'For the one who is already mine',
   },
   {
     id: '14',
@@ -368,7 +368,7 @@ I'm making up for lost time.
 And trust me—I'm keeping score.`,
     mood: ['heated', 'intimate', 'anticipatory'],
     author: 'Ayomide',
-    dedication: 'For when words aren't enough',
+    dedication: 'For when words are not enough',
   },
   {
     id: '17',
@@ -407,7 +407,7 @@ And when it does, I'm ready.
 Are you?`,
     mood: ['hopeful', 'anticipatory', 'future'],
     author: 'Ayomide',
-    dedication: 'For the reunion we're building toward',
+    dedication: 'For the reunion we are building toward',
   },
   {
     id: '19',
@@ -468,7 +468,7 @@ And I'm holding it until you're ready to claim it.
 No rush. But it's yours.`,
     mood: ['tender', 'romantic', 'patient'],
     author: 'Ayomide',
-    dedication: 'For the space that's always been yours',
+    dedication: 'For the space that has always been yours',
   },
   {
     id: '22',
@@ -527,7 +527,7 @@ And when it does?
 I'm making up for every single day we spent apart.`,
     mood: ['patient', 'longing', 'determined'],
     author: 'Ayomide',
-    dedication: 'For the wait that's worth it',
+    dedication: 'For the wait that is worth it',
   },
   {
     id: '25',
@@ -547,7 +547,7 @@ Let me in, Her Majesty.
 I promise I'm worth the risk.`,
     mood: ['vulnerable', 'inviting', 'gentle'],
     author: 'Ayomide',
-    dedication: 'For the walls you don't have to keep up',
+    dedication: 'For the walls you do not have to keep up',
   },
   {
     id: '26',
@@ -591,7 +591,7 @@ Every name fits you perfectly,
 And I'm collecting them all.`,
     mood: ['adoring', 'intimate', 'possessive'],
     author: 'Ayomide',
-    dedication: 'For the name I can't stop saying',
+    dedication: 'For the name I cannot stop saying',
   },
   {
     id: '28',
