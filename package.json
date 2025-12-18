@@ -1,6 +1,6 @@
 {
   "name": "quiet-hours-silvyn",
-  "version": "2.0.0",
+  "version": "2.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,6 +12,7 @@
     "@tsparticles/engine": "^3.3.0",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.3.0",
+    "firebase": "^10.7.1",
     "framer-motion": "^11.5.4",
     "lucide-react": "^0.400.0",
     "next": "14.2.5",
