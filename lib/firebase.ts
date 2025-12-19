@@ -5,13 +5,14 @@ import { getDatabase } from 'firebase/database';
 // Go to: https://console.firebase.google.com
 // Create project > Web App > Copy config
 const firebaseConfig = {
-  apiKey: "AIzaSyC_YOUR_API_KEY",
-  authDomain: "your-project.firebaseapp.com",
+  apiKey: "AIzaSyCOe1XPyNb7bgSMb8_euugghjdZBZiXwps",
+  authDomain: "her-majesty-1bb7e.firebaseapp.com",
   databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  projectId: "her-majesty-1bb7e",
+  storageBucket: "her-majesty-1bb7e.firebasestorage.app",
+  messagingSenderId: "923373911468",
+  appId: "1:923373911468:web:8357bf8b93b5819a478e09",
+  measurementId: "G-EH84BE625R"
 };
 
 let app;
