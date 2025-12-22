@@ -1,9 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getDatabase } from 'firebase/database';
+import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 
-// TODO: Replace with your Firebase config
+// REPLACE WITH YOUR FIREBASE CONFIG
 // Go to: https://console.firebase.google.com
-// Create project > Web App > Copy config
+// Project Settings > General > Your apps > SDK setup and configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCOe1XPyNb7bgSMb8_euugghjdZBZiXwps",
   authDomain: "her-majesty-1bb7e.firebaseapp.com",
@@ -15,6 +15,7 @@ const firebaseConfig = {
   measurementId: "G-EH84BE625R"
 };
 
+// Initialize Firebase
 let app;
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
@@ -22,6 +23,13 @@ if (!getApps().length) {
   app = getApp();
 }
 
+// Get database instance
 const database = getDatabase(app);
+
+// IMPORTANT: For development, you can use emulator
+// Uncomment this if testing locally:
+// if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+//   connectDatabaseEmulator(database, 'localhost', 9000);
+// }
 
 export { app, database };
