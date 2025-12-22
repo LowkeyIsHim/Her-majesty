@@ -26,7 +26,7 @@ const games = {
       IconComponent: Brain,
     },
     {
-      id: 'shooter',
+      id: 'reflex',
       title: 'Aim Trainer',
       description: 'Free Fire style shooting!',
       icon: '🎯',
