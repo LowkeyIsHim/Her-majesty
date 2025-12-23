@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Users, RotateCcw } from 'lucide-react';
-import { ref, set, onValue, off } from 'firebase/database';
+import { Copy, Check, Users, RotateCcw, AlertCircle } from 'lucide-react';
+import { ref, set, onValue, off, get } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { generateRoomCode } from '@/lib/gameUtils';
+import { sounds } from '@/lib/sounds';
 
 type Player = 'X' | 'O' | null;
 type Board = Player[];
@@ -16,6 +17,8 @@ interface GameState {
   winner: Player;
   roomCode: string;
   players: number;
+  playerX: string;
+  playerO: string;
 }
 
 const TicTacToeGame: React.FC = () => {
@@ -26,9 +29,10 @@ const TicTacToeGame: React.FC = () => {
   const [playerSymbol, setPlayerSymbol] = useState<Player>(null);
   const [copied, setCopied] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (roomCode) {
+    if (roomCode && database) {
       const gameRef = ref(database, `games/tictactoe/${roomCode}`);
       
       const unsubscribe = onValue(gameRef, (snapshot) => {
@@ -36,6 +40,7 @@ const TicTacToeGame: React.FC = () => {
         if (data) {
           setGameState(data);
           setIsConnected(true);
+          setError('');
         }
       });
 
@@ -46,6 +51,11 @@ const TicTacToeGame: React.FC = () => {
   }, [roomCode]);
 
   const createRoom = () => {
+    if (!database) {
+      setError('Firebase not initialized. Check your config.');
+      return;
+    }
+
     const code = generateRoomCode();
     setRoomCode(code);
     setIsHost(true);
@@ -57,28 +67,64 @@ const TicTacToeGame: React.FC = () => {
       winner: null,
       roomCode: code,
       players: 1,
+      playerX: 'Host',
+      playerO: '',
     };
 
-    set(ref(database, `games/tictactoe/${code}`), initialState);
+    set(ref(database, `games/tictactoe/${code}`), initialState)
+      .then(() => {
+        sounds.buttonClick();
+        setError('');
+      })
+      .catch((err) => {
+        setError('Failed to create room: ' + err.message);
+      });
   };
 
-  const joinRoom = () => {
-    if (!inputCode) return;
-    setRoomCode(inputCode.toUpperCase());
-    setPlayerSymbol('O');
+  const joinRoom = async () => {
+    if (!inputCode || !database) {
+      setError('Enter a room code');
+      return;
+    }
 
-    const gameRef = ref(database, `games/tictactoe/${inputCode.toUpperCase()}`);
+    const upperCode = inputCode.toUpperCase().trim();
+    const gameRef = ref(database, `games/tictactoe/${upperCode}`);
     
-    onValue(gameRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        set(ref(database, `games/tictactoe/${inputCode.toUpperCase()}/players`), 2);
+    try {
+      const snapshot = await get(gameRef);
+      
+      if (!snapshot.exists()) {
+        setError('Room not found. Check the code.');
+        return;
       }
-    }, { onlyOnce: true });
+
+      const data = snapshot.val();
+      
+      if (data.players >= 2) {
+        setError('Room is full');
+        return;
+      }
+
+      setRoomCode(upperCode);
+      setPlayerSymbol('O');
+      setIsHost(false);
+      
+      await set(ref(database, `games/tictactoe/${upperCode}`), {
+        ...data,
+        players: 2,
+        playerO: 'Guest',
+      });
+
+      sounds.buttonClick();
+      setError('');
+      setInputCode('');
+    } catch (err: any) {
+      setError('Failed to join: ' + err.message);
+    }
   };
 
   const makeMove = (index: number) => {
-    if (!gameState || !roomCode || !playerSymbol) return;
+    if (!gameState || !roomCode || !playerSymbol || !database) return;
     if (gameState.board[index] || gameState.winner) return;
     if (gameState.currentPlayer !== playerSymbol) return;
 
@@ -94,6 +140,12 @@ const TicTacToeGame: React.FC = () => {
       currentPlayer: nextPlayer,
       winner,
     });
+
+    if (winner) {
+      sounds.victory();
+    } else {
+      sounds.buttonClick();
+    }
   };
 
   const calculateWinner = (board: Board): Player => {
@@ -118,7 +170,7 @@ const TicTacToeGame: React.FC = () => {
   };
 
   const resetGame = () => {
-    if (!roomCode || !isHost) return;
+    if (!roomCode || !isHost || !database) return;
 
     set(ref(database, `games/tictactoe/${roomCode}`), {
       ...gameState,
@@ -126,23 +178,33 @@ const TicTacToeGame: React.FC = () => {
       currentPlayer: 'X',
       winner: null,
     });
+
+    sounds.buttonClick();
   };
 
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    sounds.buttonClick();
   };
 
   const isDraw = gameState?.board.every(cell => cell !== null) && !gameState.winner;
 
   if (!roomCode) {
     return (
-      <div className="flex flex-col items-center justify-center gap-8">
-        <div className="glass rounded-3xl p-8 max-w-md w-full">
+      <div className="flex flex-col items-center justify-center gap-8 p-4">
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 max-w-md w-full">
           <h2 className="text-3xl font-bold text-white mb-6 text-center">
             Choose Mode
           </h2>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl flex items-center gap-2 text-red-200 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
 
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -159,7 +221,7 @@ const TicTacToeGame: React.FC = () => {
               <div className="w-full border-t border-white/20"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-midnight text-white/60">or</span>
+              <span className="px-4 bg-transparent text-white/60">or</span>
             </div>
           </div>
 
@@ -168,7 +230,8 @@ const TicTacToeGame: React.FC = () => {
             placeholder="Enter room code..."
             value={inputCode}
             onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-cyan-500 mb-4"
+            onKeyPress={(e) => e.key === 'Enter' && joinRoom()}
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-cyan-500 mb-4 text-center font-mono text-lg"
             maxLength={6}
           />
 
@@ -187,12 +250,11 @@ const TicTacToeGame: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-8">
-      {/* Room Info */}
+    <div className="flex flex-col items-center justify-center gap-6 p-4">
       <div className="flex items-center gap-4 flex-wrap justify-center">
-        <div className="glass px-6 py-3 rounded-full flex items-center gap-3">
+        <div className="bg-white/5 backdrop-blur-sm px-6 py-3 rounded-full flex items-center gap-3 border border-white/10">
           <span className="text-white/60">Room:</span>
-          <span className="text-white font-mono font-bold">{roomCode}</span>
+          <span className="text-white font-mono font-bold text-lg">{roomCode}</span>
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={copyRoomCode}
@@ -202,23 +264,22 @@ const TicTacToeGame: React.FC = () => {
           </motion.button>
         </div>
 
-        <div className="glass px-6 py-3 rounded-full">
-          <span className="text-white/60">You are: </span>
-          <span className={`font-bold ${playerSymbol === 'X' ? 'text-blue-400' : 'text-pink-400'}`}>
+        <div className="bg-white/5 backdrop-blur-sm px-6 py-3 rounded-full border border-white/10">
+          <span className="text-white/60">You: </span>
+          <span className={`font-bold text-lg ${playerSymbol === 'X' ? 'text-blue-400' : 'text-pink-400'}`}>
             {playerSymbol}
           </span>
         </div>
 
         {gameState && gameState.players < 2 && (
-          <div className="glass px-6 py-3 rounded-full text-yellow-400 animate-pulse">
+          <div className="bg-yellow-500/20 border border-yellow-500/50 px-6 py-3 rounded-full text-yellow-400 animate-pulse">
             Waiting for opponent...
           </div>
         )}
       </div>
 
-      {/* Game Board */}
       <div className="relative">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           {gameState?.board.map((cell, index) => (
             <motion.button
               key={index}
@@ -226,7 +287,7 @@ const TicTacToeGame: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => makeMove(index)}
               disabled={!isConnected || gameState.players < 2}
-              className={`w-24 h-24 rounded-2xl flex items-center justify-center text-5xl font-bold transition-all ${
+              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-bold transition-all ${
                 cell === 'X' ? 'bg-gradient-to-br from-blue-500 to-cyan-600 text-white' :
                 cell === 'O' ? 'bg-gradient-to-br from-pink-500 to-rose-600 text-white' :
                 'bg-white/10 hover:bg-white/20'
@@ -237,15 +298,14 @@ const TicTacToeGame: React.FC = () => {
           ))}
         </div>
 
-        {/* Winner Overlay */}
         <AnimatePresence>
           {(gameState?.winner || isDraw) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="absolute inset-0 bg-black/80 rounded-2xl flex items-center justify-center backdrop-blur-sm"
+              className="absolute inset-0 bg-black/90 rounded-2xl flex items-center justify-center backdrop-blur-sm"
             >
-              <div className="text-center p-8">
+              <div className="text-center p-6">
                 <p className="text-4xl font-bold text-white mb-4">
                   {isDraw ? 'Draw! 🤝' : `${gameState.winner} Wins! 🎉`}
                 </p>
@@ -266,11 +326,10 @@ const TicTacToeGame: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      {/* Turn Indicator */}
       {gameState && gameState.players === 2 && !gameState.winner && (
         <div className="text-center">
           <p className="text-white/60 text-sm mb-2">Current Turn:</p>
-          <p className={`text-2xl font-bold ${
+          <p className={`text-3xl font-bold ${
             gameState.currentPlayer === 'X' ? 'text-blue-400' : 'text-pink-400'
           }`}>
             {gameState.currentPlayer}
