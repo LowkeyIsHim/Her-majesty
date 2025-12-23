@@ -1,5 +1,6 @@
 'use client';
 
+import { ref, set, onValue, off, get } from 'firebase/database';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Copy, Check, Users, Zap } from 'lucide-react';
@@ -82,25 +83,43 @@ const WordRaceGame: React.FC = () => {
 
     set(ref(database, `games/wordrace/${code}`), initialState);
   };
+  
+  const joinRoom = async () => {
+  if (!inputCode || !playerName.trim() || !database) {
+    return;
+  }
+  
+  const upperCode = inputCode.toUpperCase().trim();
+  const gameRef = ref(database, `games/wordrace/${upperCode}`);
+  
+  try {
+    const snapshot = await get(gameRef);
+    
+    if (!snapshot.exists()) {
+      alert('Room not found. Check the code.');
+      return;
+    }
 
-  const joinRoom = () => {
-    if (!inputCode || !playerName.trim()) return;
+    const data = snapshot.val();
     
-    setRoomCode(inputCode.toUpperCase());
+    if (data.players && data.players[playerName]) {
+      alert('Name already taken in this room');
+      return;
+    }
+
+    setRoomCode(upperCode);
     
-    const gameRef = ref(database, `games/wordrace/${inputCode.toUpperCase()}`);
-    
-    onValue(gameRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        set(ref(database, `games/wordrace/${inputCode.toUpperCase()}/players/${playerName}`), {
-          name: playerName,
-          score: 0,
-          ready: false,
-        });
-      }
-    }, { onlyOnce: true });
-  };
+    await set(ref(database, `games/wordrace/${upperCode}/players/${playerName}`), {
+      name: playerName,
+      score: 0,
+      ready: false,
+    });
+
+    sounds.buttonClick();
+  } catch (err: any) {
+    alert('Failed to join: ' + err.message);
+  }
+};
 
   const markReady = () => {
     if (!roomCode || !gameState) return;
