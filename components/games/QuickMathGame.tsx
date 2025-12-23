@@ -4,7 +4,6 @@ import { ref, set, onValue, off, get } from 'firebase/database';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Check, Users, Trophy, Zap, RotateCcw } from 'lucide-react';
-import { ref, set, onValue, off } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { generateRoomCode } from '@/lib/gameUtils';
 import { sounds } from '@/lib/sounds';
