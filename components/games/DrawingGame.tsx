@@ -1,5 +1,6 @@
 'use client';
 
+import { ref, set, onValue, off, push, get } from 'firebase/database';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pencil, Eraser, RotateCcw, Send, Copy, Check, Users } from 'lucide-react';
@@ -97,24 +98,42 @@ const DrawingGame: React.FC = () => {
     set(ref(database, `games/drawing/${code}`), initialState);
   };
 
-  const joinRoom = () => {
-    if (!inputCode || !playerName.trim()) return;
+  const joinRoom = async () => {
+  if (!inputCode || !playerName.trim() || !database) {
+    return;
+  }
+  
+  const upperCode = inputCode.toUpperCase().trim();
+  const gameRef = ref(database, `games/drawing/${upperCode}`);
+  
+  try {
+    const snapshot = await get(gameRef);
     
-    setRoomCode(inputCode.toUpperCase());
+    if (!snapshot.exists()) {
+      alert('Room not found. Check the code.');
+      return;
+    }
+
+    const data = snapshot.val();
     
-    const gameRef = ref(database, `games/drawing/${inputCode.toUpperCase()}`);
+    if (data.players && data.players.includes(playerName)) {
+      alert('Name already taken in this room');
+      return;
+    }
+
+    setRoomCode(upperCode);
     
-    onValue(gameRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const updatedPlayers = [...data.players, playerName];
-        const updatedScore = { ...data.score, [playerName]: 0 };
-        
-        set(ref(database, `games/drawing/${inputCode.toUpperCase()}/players`), updatedPlayers);
-        set(ref(database, `games/drawing/${inputCode.toUpperCase()}/score`), updatedScore);
-      }
-    }, { onlyOnce: true });
-  };
+    const updatedPlayers = [...(data.players || []), playerName];
+    const updatedScore = { ...(data.score || {}), [playerName]: 0 };
+    
+    await set(ref(database, `games/drawing/${upperCode}/players`), updatedPlayers);
+    await set(ref(database, `games/drawing/${upperCode}/score`), updatedScore);
+
+    sounds.buttonClick();
+  } catch (err: any) {
+    alert('Failed to join: ' + err.message);
+  }
+};
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isMyTurn()) return;
