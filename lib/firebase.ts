@@ -17,19 +17,17 @@ const firebaseConfig = {
 
 // Initialize Firebase
 let app;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
+let database;
+
+try {
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  database = getDatabase(app);
+} catch (error) {
+  console.error('Firebase initialization error:', error);
 }
-
-// Get database instance
-const database = getDatabase(app);
-
-// IMPORTANT: For development, you can use emulator
-// Uncomment this if testing locally:
-// if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-//   connectDatabaseEmulator(database, 'localhost', 9000);
-// }
 
 export { app, database };
