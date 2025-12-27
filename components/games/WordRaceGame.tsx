@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Copy, Check, Users, Zap } from 'lucide-react';
 import { database } from '@/lib/firebase';
 import { generateRoomCode } from '@/lib/gameUtils';
+import { sounds } from '@/lib/sounds';
 
 interface Player {
   name: string;
