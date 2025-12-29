@@ -1,3 +1,5 @@
+// components/Experience.tsx - FIXED
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -13,6 +15,7 @@ interface MoodContent {
   icon: React.ReactNode;
   color: string;
   gradient: string;
+  description: string;
   messages: string[];
 }
 
@@ -29,6 +32,7 @@ const Experience: React.FC = () => {
       icon: <Heart className="w-8 h-8" fill="currentColor" />,
       color: '#f7a4c8',
       gradient: 'from-soft-pink via-rose-gold to-plum',
+      description: 'Soft words, deep feelings',
       messages: [
         "Lovebug, you know what's wild? I can be in the middle of something completely random, and suddenly I'll think about the way you laugh. That unfiltered, genuine sound that makes everything else fade.",
         "Distance is temporary. But the way you've carved out space in my heart? That's permanent, Omalicha. You're the beautiful one—inside and out.",
@@ -42,6 +46,7 @@ const Experience: React.FC = () => {
       icon: <Smile className="w-8 h-8" />,
       color: '#fbbf24',
       gradient: 'from-yellow-400 via-orange-400 to-rose-gold',
+      description: 'Jokes, teasing, lightness',
       messages: [
         "Coconut Head, you really think you're slick when you deflect my compliments, don't you? Mirror mode activated. But I see right through it. You're extraordinary, and I'm not letting you forget it.",
         "You know what's funny? Long distance relationships. We're out here missing each other like we're in a tragic romance novel, but the reunion? Chef's kiss. Worth every second.",
@@ -55,6 +60,7 @@ const Experience: React.FC = () => {
       icon: <Flame className="w-8 h-8" />,
       color: '#dc2626',
       gradient: 'from-red-500 via-rose-600 to-plum',
+      description: 'Unfiltered, direct, heated',
       messages: [
         "I remember the warmth of your skin, the way you fit perfectly in that space I'm always subconsciously saving for you. If tomorrow lets us, I'm claiming all of it again.",
         "You know what keeps me up at night? The thought of you. Not in some poetic, distant way—but in the I-need-you-close-to-me kind of way. Raw, honest, and completely yours.",
@@ -68,6 +74,7 @@ const Experience: React.FC = () => {
       icon: <Coffee className="w-8 h-8" />,
       color: '#8b5cf6',
       gradient: 'from-purple-400 via-plum to-deep-purple',
+      description: 'Safe, warm, peaceful',
       messages: [
         "Omalicha, the world can be chaotic and loud, but with you, it's quiet. You're my reset button, my safe space, my 'everything's going to be okay.'",
         "You don't have to perform for me, you know? No deflecting, no shields, no Mirror mode. Just you. That's more than enough—it's everything.",
@@ -81,6 +88,7 @@ const Experience: React.FC = () => {
       icon: <MoonIcon className="w-8 h-8" />,
       color: '#4b0082',
       gradient: 'from-deep-purple via-plum to-midnight',
+      description: 'Honest, vulnerable, real',
       messages: [
         "Morenikeji, a twin meant to be cherished. That's what you are to me. Not just someone I talk to—but someone I see, fully, and choose every single time.",
         "I've always known your orbit, Silvyn. We just have better gravity now. It's like the universe finally said, 'Yeah, those two make sense.'",
@@ -95,7 +103,7 @@ const Experience: React.FC = () => {
     if (currentMood !== 'initial' && messageIndex < moodContent[currentMood].messages.length - 1) {
       const timer = setTimeout(() => {
         setMessageIndex((prev) => prev + 1);
-      }, 8000); // Change message every 8 seconds
+      }, 8000);
       return () => clearTimeout(timer);
     }
   }, [currentMood, messageIndex, moodContent]);
@@ -128,10 +136,8 @@ const Experience: React.FC = () => {
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-midnight via-deep-purple to-midnight">
       <ParticlesBackground color={currentContent?.color || '#f7a4c8'} density={30} />
 
-      {/* Audio element */}
       <audio ref={audioRef} src="/silvyn.mp3" loop preload="auto" />
 
-      {/* Back button */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -178,7 +184,6 @@ const Experience: React.FC = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6 }}
               >
-                {/* Romantic */}
                 <motion.button
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
@@ -193,7 +198,6 @@ const Experience: React.FC = () => {
                   </div>
                 </motion.button>
 
-                {/* Playful */}
                 <motion.button
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
@@ -208,7 +212,6 @@ const Experience: React.FC = () => {
                   </div>
                 </motion.button>
 
-                {/* Spicy */}
                 <motion.button
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
@@ -223,7 +226,6 @@ const Experience: React.FC = () => {
                   </div>
                 </motion.button>
 
-                {/* Comfort */}
                 <motion.button
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
@@ -238,7 +240,6 @@ const Experience: React.FC = () => {
                   </div>
                 </motion.button>
 
-                {/* Deep */}
                 <motion.button
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
@@ -272,86 +273,85 @@ const Experience: React.FC = () => {
               transition={{ duration: 1 }}
               className="max-w-4xl w-full text-center px-6"
             >
-              {/* Mood icon and title */}
-              <motion.div
-                className="mb-8"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.3, type: 'spring' }}
-              >
-                <div className={`inline-block p-4 rounded-full bg-gradient-to-br ${currentContent.gradient} mb-4`}>
-                  {currentContent.icon}
-                </div>
-                <h2 className="font-serif text-3xl sm:text-5xl gradient-text">
-                  {currentContent.title}
-                </h2>
-              </motion.div>
-
-              {/* Animated messages */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={messageIndex}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -30 }}
-                  transition={{ duration: 1.2 }}
-                  className="mb-12"
-                >
-                  <p className="text-xl sm:text-2xl lg:text-3xl text-white/90 leading-relaxed font-light">
-                    {currentContent.messages[messageIndex]}
-                  </p>
-                </motion.div>
-              </AnimatePresence>
-
-              {/* Progress indicator */}
-              <div className="flex justify-center gap-2 mb-8">
-                {currentContent.messages.map((_, idx) => (
+              {currentContent && (
+                <>
                   <motion.div
-                    key={idx}
-                    className={`h-2 rounded-full transition-all ${
-                      idx === messageIndex ? 'w-8 bg-white' : 'w-2 bg-white/30'
-                    }`}
+                    className="mb-8"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ delay: idx * 0.1 }}
-                  />
-                ))}
-              </div>
+                    transition={{ delay: 0.3, type: 'spring' }}
+                  >
+                    <div className={`inline-block p-4 rounded-full bg-gradient-to-br ${currentContent.gradient} mb-4`}>
+                      {currentContent.icon}
+                    </div>
+                    <h2 className="font-serif text-3xl sm:text-5xl gradient-text">
+                      {currentContent.title}
+                    </h2>
+                  </motion.div>
 
-              {/* Action buttons */}
-              <motion.div
-                className="flex flex-col sm:flex-row gap-4 justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-              >
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={resetExperience}
-                  className="px-8 py-3 glass rounded-full text-white hover:bg-white/10 transition-smooth"
-                >
-                  Change Vibe
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setMessageIndex((prev) => (prev + 1) % currentContent.messages.length)}
-                  className={`px-8 py-3 bg-gradient-to-r ${currentContent.gradient} rounded-full text-white font-semibold shadow-lg`}
-                >
-                  Next Message
-                </motion.button>
-              </motion.div>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={messageIndex}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -30 }}
+                      transition={{ duration: 1.2 }}
+                      className="mb-12"
+                    >
+                      <p className="text-xl sm:text-2xl lg:text-3xl text-white/90 leading-relaxed font-light">
+                        {currentContent.messages[messageIndex]}
+                      </p>
+                    </motion.div>
+                  </AnimatePresence>
 
-              {/* Signature */}
-              <motion.p
-                className="mt-16 font-script text-2xl text-white/60"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
-              >
-                — Always, Ayomide
-              </motion.p>
+                  <div className="flex justify-center gap-2 mb-8">
+                    {currentContent.messages.map((_, idx) => (
+                      <motion.div
+                        key={idx}
+                        className={`h-2 rounded-full transition-all ${
+                          idx === messageIndex ? 'w-8 bg-white' : 'w-2 bg-white/30'
+                        }`}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: idx * 0.1 }}
+                      />
+                    ))}
+                  </div>
+
+                  <motion.div
+                    className="flex flex-col sm:flex-row gap-4 justify-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                  >
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={resetExperience}
+                      className="px-8 py-3 glass rounded-full text-white hover:bg-white/10 transition-smooth"
+                    >
+                      Change Vibe
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setMessageIndex((prev) => (prev + 1) % currentContent.messages.length)}
+                      className={`px-8 py-3 bg-gradient-to-r ${currentContent.gradient} rounded-full text-white font-semibold shadow-lg`}
+                    >
+                      Next Message
+                    </motion.button>
+                  </motion.div>
+
+                  <motion.p
+                    className="mt-16 font-script text-2xl text-white/60"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.2 }}
+                  >
+                    — Always, Ayomide
+                  </motion.p>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
