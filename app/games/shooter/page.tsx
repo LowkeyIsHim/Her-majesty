@@ -1,31 +1,35 @@
+// app/games/shooter/page.tsx - SSR Fixed
+
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import ShooterGame from '@/components/games/ShooterGame';
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
-export default function ShooterPage() {
-  const router = useRouter();
-
-  return (
-    <div className="relative min-h-screen w-full bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900">
-      {/* NO PARTICLES - Clean gaming experience */}
-
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        onClick={() => router.push('/games')}
-        className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-black/60 backdrop-blur-sm rounded-full text-white/70 hover:text-white hover:bg-black/80 transition-smooth"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="hidden sm:inline">Back</span>
-      </motion.button>
-
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <ShooterGame />
+// Dynamically import ShooterGame with no SSR
+const ShooterGame = dynamic(() => import('@/components/games/ShooterGame'), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 bg-black flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-white text-xl font-semibold">Loading Shooter...</p>
+        <p className="text-white/60 text-sm mt-2">Initializing game engine</p>
       </div>
     </div>
+  ),
+});
+
+export default function ShooterPage() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-xl font-semibold">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ShooterGame />
+    </Suspense>
   );
 }
