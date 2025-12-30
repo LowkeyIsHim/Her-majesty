@@ -1,9 +1,8 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
+// lib/firebase.ts - Fixed with proper types
 
-// REPLACE WITH YOUR FIREBASE CONFIG
-// Go to: https://console.firebase.google.com
-// Project Settings > General > Your apps > SDK setup and configuration
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getDatabase, Database } from 'firebase/database';
+
 const firebaseConfig = {
   apiKey: "AIzaSyCOe1XPyNb7bgSMb8_euugghjdZBZiXwps",
   authDomain: "her-majesty-1bb7e.firebaseapp.com",
@@ -15,19 +14,17 @@ const firebaseConfig = {
   measurementId: "G-EH84BE625R"
 };
 
-// Initialize Firebase
-let app;
-let database;
+let app: FirebaseApp;
+let database: Database;
 
-try {
+if (typeof window !== 'undefined') {
+  // Only initialize on client side
   if (!getApps().length) {
     app = initializeApp(firebaseConfig);
   } else {
-    app = getApp();
+    app = getApps()[0];
   }
   database = getDatabase(app);
-} catch (error) {
-  console.error('Firebase initialization error:', error);
 }
 
-export { app, database };
+export { database };
