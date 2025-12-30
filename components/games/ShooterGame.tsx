@@ -386,6 +386,9 @@ export default function ShooterGame() {
 
   // ===== LIFECYCLE =====
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
     requestRef.current = requestAnimationFrame(gameLoop);
     return () => {
       if (requestRef.current) {
@@ -417,8 +420,8 @@ export default function ShooterGame() {
       <div className="flex-1 relative overflow-hidden">
         <canvas
           ref={canvasRef}
-          width={window.innerWidth}
-          height={window.innerHeight - 64}
+          width={typeof window !== 'undefined' ? window.innerWidth : 800}
+          height={typeof window !== 'undefined' ? window.innerHeight - 64 : 600}
           className="w-full h-full touch-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
