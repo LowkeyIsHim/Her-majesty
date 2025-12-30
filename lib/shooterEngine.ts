@@ -8,8 +8,10 @@ import {
   Controls, 
   MapData,
   Obstacle,
-  GameConfig 
+  GameConfig,
+  Weapon
 } from './shooterTypes';
+import { calculateSpread } from './weapons';
 
 export class ShooterEngine {
   private config: GameConfig;
@@ -18,6 +20,48 @@ export class ShooterEngine {
   constructor(config: GameConfig, mapData: MapData) {
     this.config = config;
     this.mapData = mapData;
+  }
+
+  // ===== SHOOTING MECHANICS =====
+  createBullet(player: Player, weapon: Weapon, controls: Controls): Bullet | null {
+    // Calculate spread based on player state
+    const spread = calculateSpread(
+      weapon,
+      player.isMoving,
+      player.isSprinting,
+      player.isCrouching,
+      controls.isAiming
+    );
+
+    // Apply spread to aim direction
+    const spreadRadians = (spread * Math.PI) / 180;
+    const randomSpread = (Math.random() - 0.5) * spreadRadians;
+    const bulletAngle = player.rotation + randomSpread;
+
+    // Create bullet velocity
+    const velocity = {
+      x: Math.cos(bulletAngle) * weapon.bulletSpeed,
+      y: Math.sin(bulletAngle) * weapon.bulletSpeed,
+    };
+
+    // Spawn bullet slightly in front of player
+    const spawnDistance = player.size + 10;
+    const spawnPosition = {
+      x: player.position.x + Math.cos(player.rotation) * spawnDistance,
+      y: player.position.y + Math.sin(player.rotation) * spawnDistance,
+    };
+
+    return {
+      id: `bullet_${Date.now()}_${Math.random()}`,
+      position: spawnPosition,
+      velocity,
+      damage: weapon.damage,
+      ownerId: player.id,
+      ownerTeam: player.team,
+      distanceTraveled: 0,
+      maxRange: weapon.range,
+      size: 3,
+    };
   }
 
   // ===== PLAYER MOVEMENT =====
@@ -203,14 +247,14 @@ export class ShooterEngine {
 
       // Check player collision
       let hitPlayer = false;
-      for (const [playerId, player] of players) {
+      players.forEach((player, playerId) => {
         // Don't hit own bullets or dead players or teammates
         if (
           playerId === bullet.ownerId ||
           player.isDead ||
           (bullet.ownerTeam !== 'none' && player.team === bullet.ownerTeam)
         ) {
-          continue;
+          return;
         }
 
         const distance = Math.sqrt(
@@ -225,9 +269,8 @@ export class ShooterEngine {
             bulletOwnerId: bullet.ownerId
           });
           hitPlayer = true;
-          break;
         }
-      }
+      });
 
       if (hitPlayer) {
         continue; // Remove bullet
