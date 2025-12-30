@@ -19,6 +19,7 @@ interface GameState {
   players: number;
   playerX: string;
   playerO: string;
+  gameOver?: boolean;
 }
 
 const TicTacToeGame: React.FC = () => {
@@ -69,6 +70,7 @@ const TicTacToeGame: React.FC = () => {
       players: 1,
       playerX: 'Host',
       playerO: '',
+      gameOver: false,
     };
 
     set(ref(database, `games/tictactoe/${code}`), initialState)
@@ -139,6 +141,7 @@ const TicTacToeGame: React.FC = () => {
       board: newBoard,
       currentPlayer: nextPlayer,
       winner,
+      gameOver: winner !== null || newBoard.every(cell => cell !== null),
     });
 
     if (winner) {
@@ -177,6 +180,7 @@ const TicTacToeGame: React.FC = () => {
       board: Array(9).fill(null),
       currentPlayer: 'X',
       winner: null,
+      gameOver: false,
     });
 
     sounds.buttonClick();
@@ -299,7 +303,7 @@ const TicTacToeGame: React.FC = () => {
         </div>
 
         <AnimatePresence>
-          {(gameState?.winner || isDraw) && (
+          {gameState && (gameState.winner || isDraw) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -307,7 +311,7 @@ const TicTacToeGame: React.FC = () => {
             >
               <div className="text-center p-6">
                 <p className="text-4xl font-bold text-white mb-4">
-                  {isDraw ? 'Draw! 🤝' : `${gameState.winner} Wins! 🎉`}
+                  {isDraw ? 'Draw! 🤝' : `${gameState.winner || 'Player'} Wins! 🎉`}
                 </p>
                 {isHost && (
                   <motion.button
