@@ -11,10 +11,12 @@ import {
   Joystick, 
   Vector2, 
   GameConfig,
-  MapData 
+  MapData,
+  Bullet
 } from '@/lib/shooterTypes';
 import { ShooterEngine } from '@/lib/shooterEngine';
 import { createDefaultMap } from '@/lib/shooterMap';
+import { WEAPONS, getWeaponById } from '@/lib/weapons';
 
 const GAME_CONFIG: GameConfig = {
   mapWidth: 1200,
@@ -50,16 +52,19 @@ export default function ShooterGame() {
     isDead: false,
     kills: 0,
     deaths: 0,
-    currentWeapon: 0,
+    currentWeapon: WEAPONS.AR,
     ammo: 30,
-    maxAmmo: 30,
-    reserveAmmo: 90,
+    reserveAmmo: 120,
     isReloading: false,
+    lastShotTime: 0,
+    consecutiveShots: 0,
     size: GAME_CONFIG.playerSize,
     speed: GAME_CONFIG.playerSpeed,
     sprintSpeed: GAME_CONFIG.playerSpeed * GAME_CONFIG.sprintMultiplier,
     crouchSpeed: GAME_CONFIG.playerSpeed * GAME_CONFIG.crouchMultiplier,
   });
+
+  const [bullets, setBullets] = useState<Bullet[]>([]);
 
   const [mapData] = useState<MapData>(() => 
     createDefaultMap(GAME_CONFIG.mapWidth, GAME_CONFIG.mapHeight)
@@ -97,6 +102,67 @@ export default function ShooterGame() {
   });
 
   const touchesRef = useRef<Map<number, { id: number; side: 'left' | 'right' }>>(new Map());
+
+  // ===== SHOOTING LOGIC =====
+  const shoot = useCallback(() => {
+    if (!player || player.isDead || player.isReloading) return;
+    if (player.ammo <= 0) {
+      // Empty gun click sound would go here
+      return;
+    }
+
+    const now = Date.now();
+    const fireDelay = 1000 / player.currentWeapon.fireRate;
+
+    if (now - player.lastShotTime < fireDelay) return;
+
+    // Create bullet
+    const bullet = engine.createBullet(player, player.currentWeapon, controlsRef.current);
+    if (bullet) {
+      setBullets(prev => [...prev, bullet]);
+      
+      // Update player state
+      setPlayer(prev => ({
+        ...prev,
+        ammo: prev.ammo - 1,
+        lastShotTime: now,
+        consecutiveShots: prev.consecutiveShots + 1,
+      }));
+    }
+  }, [player, engine]);
+
+  // Auto-reload when empty
+  useEffect(() => {
+    if (player.ammo === 0 && !player.isReloading && player.reserveAmmo > 0) {
+      startReload();
+    }
+  }, [player.ammo, player.isReloading, player.reserveAmmo]);
+
+  const startReload = () => {
+    if (player.isReloading || player.reserveAmmo === 0) return;
+    if (player.ammo === player.currentWeapon.magazineSize) return;
+
+    setPlayer(prev => ({
+      ...prev,
+      isReloading: true,
+      reloadStartTime: Date.now(),
+    }));
+
+    setTimeout(() => {
+      setPlayer(prev => {
+        const ammoNeeded = prev.currentWeapon.magazineSize - prev.ammo;
+        const ammoToAdd = Math.min(ammoNeeded, prev.reserveAmmo);
+
+        return {
+          ...prev,
+          ammo: prev.ammo + ammoToAdd,
+          reserveAmmo: prev.reserveAmmo - ammoToAdd,
+          isReloading: false,
+          reloadStartTime: undefined,
+        };
+      });
+    }, player.currentWeapon.reloadTime);
+  };
 
   // ===== JOYSTICK HANDLING =====
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -180,6 +246,13 @@ export default function ShooterGame() {
             : prev.direction;
 
           controlsRef.current.aim = direction;
+          
+          // Auto-shoot when aiming (hold to shoot)
+          if (distance > 30) {
+            controlsRef.current.isShooting = true;
+          } else {
+            controlsRef.current.isShooting = false;
+          }
 
           return {
             ...prev,
@@ -227,18 +300,43 @@ export default function ShooterGame() {
     const deltaTime = (timestamp - lastTimeRef.current) / 1000;
     lastTimeRef.current = timestamp;
 
+    // Shoot if shooting button held
+    if (controlsRef.current.isShooting) {
+      shoot();
+    }
+
+    // Reset consecutive shots if not shooting
+    if (!controlsRef.current.isShooting && player.consecutiveShots > 0) {
+      setPlayer(prev => ({ ...prev, consecutiveShots: 0 }));
+    }
+
     // Update player
     const updatedPlayer = engine.updatePlayer(player, controlsRef.current, deltaTime);
     setPlayer(updatedPlayer);
 
+    // Update bullets
+    const players = new Map([[player.id, updatedPlayer]]);
+    const { bullets: updatedBullets, hits } = engine.updateBullets(bullets, players, deltaTime);
+    setBullets(updatedBullets);
+
+    // Handle hits (we'll add damage later)
+    hits.forEach(hit => {
+      if (hit.playerId === player.id) {
+        setPlayer(prev => ({
+          ...prev,
+          health: Math.max(0, prev.health - hit.damage)
+        }));
+      }
+    });
+
     // Render
-    render(updatedPlayer);
+    render(updatedPlayer, updatedBullets);
 
     requestRef.current = requestAnimationFrame(gameLoop);
-  }, [player, engine]);
+  }, [player, bullets, engine, shoot]);
 
   // ===== RENDERING =====
-  const render = (currentPlayer: Player) => {
+  const render = (currentPlayer: Player, currentBullets: Bullet[]) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -309,6 +407,29 @@ export default function ShooterGame() {
 
     ctx.restore();
 
+    // Draw bullets
+    currentBullets.forEach((bullet) => {
+      ctx.fillStyle = bullet.ownerTeam === 'blue' ? '#60a5fa' : '#f87171';
+      ctx.beginPath();
+      ctx.arc(bullet.position.x, bullet.position.y, bullet.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bullet trail
+      ctx.strokeStyle = ctx.fillStyle;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.moveTo(bullet.position.x, bullet.position.y);
+      ctx.lineTo(
+        bullet.position.x - bullet.velocity.x * 0.05,
+        bullet.position.y - bullet.velocity.y * 0.05
+      );
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
+
+    ctx.restore();
+
     // Health bar above player
     const barWidth = 40;
     const barHeight = 5;
@@ -365,6 +486,41 @@ export default function ShooterGame() {
     // Health
     ctx.fillText(`HP: ${Math.round(currentPlayer.health)}`, 20, 30);
 
+    // Ammo
+    ctx.font = 'bold 24px monospace';
+    ctx.fillStyle = currentPlayer.ammo === 0 ? '#ef4444' : '#fff';
+    ctx.fillText(`${currentPlayer.ammo}`, canvas.width - 120, canvas.height - 40);
+    
+    ctx.font = 'bold 16px monospace';
+    ctx.fillStyle = '#888';
+    ctx.fillText(`/ ${currentPlayer.reserveAmmo}`, canvas.width - 80, canvas.height - 40);
+
+    // Weapon name
+    ctx.font = '14px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(currentPlayer.currentWeapon.name, canvas.width - 200, canvas.height - 20);
+
+    // Reload indicator
+    if (currentPlayer.isReloading && currentPlayer.reloadStartTime) {
+      const reloadProgress = (Date.now() - currentPlayer.reloadStartTime) / currentPlayer.currentWeapon.reloadTime;
+      const barWidth = 200;
+      const barHeight = 8;
+      const barX = canvas.width / 2 - barWidth / 2;
+      const barY = canvas.height - 60;
+
+      ctx.fillStyle = '#333';
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+      
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(barX, barY, barWidth * Math.min(reloadProgress, 1), barHeight);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('RELOADING...', canvas.width / 2, barY - 10);
+      ctx.textAlign = 'left';
+    }
+
     // Position (debug)
     ctx.font = '12px monospace';
     ctx.fillStyle = '#888';
@@ -409,7 +565,7 @@ export default function ShooterGame() {
           <span className="font-semibold">Exit</span>
         </button>
         <div className="text-white font-bold text-lg">
-          SHOOTER - STAGE 1: CONTROLS TEST
+          SHOOTER - STAGE 2: WEAPONS TEST
         </div>
         <div className="text-green-400 font-mono text-sm">
           K: {player.kills} | D: {player.deaths}
@@ -431,10 +587,11 @@ export default function ShooterGame() {
 
         {/* Instructions */}
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg text-center">
-          <p className="font-bold mb-1">🎮 STAGE 1: TEST CONTROLS</p>
-          <p className="text-sm">Left joystick: Move | Right joystick: Aim</p>
+          <p className="font-bold mb-1">🔫 STAGE 2: SHOOTING TEST</p>
+          <p className="text-sm">Move joystick right to AIM & SHOOT</p>
+          <p className="text-xs text-white/60 mt-1">Hold outer edge to fire!</p>
         </div>
       </div>
     </div>
   );
-}
+        }
