@@ -1,24 +1,22 @@
-// components/games/ShooterGame.tsx - COMPLETE CODM-STYLE SHOOTER
+// components/games/ShooterGameCODM.tsx - COMPLETE CALL OF DUTY MOBILE
 
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ArrowLeft, Crosshair } from 'lucide-react';
+import { ArrowLeft, Users, Copy, Check, Radio, Target, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { 
-  Player, 
-  Controls, 
-  Joystick, 
-  Vector2, 
-  GameConfig,
-  MapData,
-  Bullet
-} from '@/lib/shooterTypes';
+import { Player, Controls, Joystick, Vector2, Bullet, MapData } from '@/lib/shooterTypes';
 import { ShooterEngine } from '@/lib/shooterEngine';
-import { createDefaultMap } from '@/lib/codm/MapRenderer';
-import { WEAPONS } from '@/lib/codm/Weapon3D';
+import { createDefaultMap } from '@/lib/shooterMap';
+import { WEAPONS } from '@/lib/weapons';
+import { FPSCamera } from '@/lib/codm/FPSCamera';
+import { FPSWeaponView } from '@/lib/codm/FPSWeaponView';
+import { FPSRenderer } from '@/lib/codm/FPSRenderer';
+import { MultiplayerSync, MatchSettings, MultiplayerState } from '@/lib/codm/MultiplayerSync';
 
-const GAME_CONFIG: GameConfig = {
+type GameScreen = 'menu' | 'lobby' | 'playing';
+
+const GAME_CONFIG = {
   mapWidth: 2000,
   mapHeight: 1500,
   playerSize: 20,
@@ -26,55 +24,53 @@ const GAME_CONFIG: GameConfig = {
   sprintMultiplier: 1.6,
   crouchMultiplier: 0.6,
   maxHealth: 100,
-  respawnTime: 3000,
+  respawnTime: 5000,
   killstreakThreshold: [3, 5, 7],
 };
 
-export default function ShooterGame() {
+export default function ShooterGameCODM() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
 
   // Game state
-  const [player, setPlayer] = useState<Player>({
-    id: 'player1',
-    name: 'You',
-    position: { x: 300, y: 400 },
-    rotation: 0,
-    velocity: { x: 0, y: 0 },
-    health: 100,
-    maxHealth: 100,
-    team: 'blue',
-    isMoving: false,
-    isSprinting: false,
-    isCrouching: false,
-    isDead: false,
-    kills: 0,
-    deaths: 0,
-    currentWeapon: WEAPONS.AR,
-    ammo: 30,
-    reserveAmmo: 120,
-    isReloading: false,
-    lastShotTime: 0,
-    consecutiveShots: 0,
-    size: GAME_CONFIG.playerSize,
-    speed: GAME_CONFIG.playerSpeed,
-    sprintSpeed: GAME_CONFIG.playerSpeed * GAME_CONFIG.sprintMultiplier,
-    crouchSpeed: GAME_CONFIG.playerSpeed * GAME_CONFIG.crouchMultiplier,
+  const [gameScreen, setGameScreen] = useState<GameScreen>('menu');
+  const [playerName, setPlayerName] = useState('');
+  const [roomCode, setRoomCode] = useState('');
+  const [inputCode, setInputCode] = useState('');
+  const [copied, setCopied] = useState(false);
+  
+  // Match state
+  const [matchSettings, setMatchSettings] = useState<MatchSettings>({
+    mode: 'TDM',
+    maxPlayers: 4,
+    scoreLimit: 30,
+    timeLimit: 600,
+    mapName: 'Nuketown',
   });
 
+  // Player & game state
+  const [localPlayer, setLocalPlayer] = useState<Player | null>(null);
+  const [otherPlayers, setOtherPlayers] = useState<Player[]>([]);
   const [bullets, setBullets] = useState<Bullet[]>([]);
-  const [mapData] = useState<MapData>(() => 
-    createDefaultMap(GAME_CONFIG.mapWidth, GAME_CONFIG.mapHeight)
-  );
-  const [engine] = useState(() => new ShooterEngine(GAME_CONFIG, mapData));
-  const [muzzleFlash, setMuzzleFlash] = useState<{ active: boolean; time: number }>({ 
-    active: false, 
-    time: 0 
-  });
+  const [killFeed, setKillFeed] = useState<Array<{ killer: string; victim: string; time: number }>>([]);
+  const [matchTime, setMatchTime] = useState(600);
+  const [redScore, setRedScore] = useState(0);
+  const [blueScore, setBlueScore] = useState(0);
+  const [showMuzzleFlash, setShowMuzzleFlash] = useState(false);
+  const [hitMarker, setHitMarker] = useState<{ active: boolean; time: number }>({ active: false, time: 0 });
+  const [killstreak, setKillstreak] = useState(0);
 
-  // Controls state
+  // Systems
+  const [mapData] = useState<MapData>(() => createDefaultMap(GAME_CONFIG.mapWidth, GAME_CONFIG.mapHeight));
+  const [engine] = useState(() => new ShooterEngine(GAME_CONFIG, mapData));
+  const [camera] = useState(() => new FPSCamera());
+  const [weaponView] = useState(() => new FPSWeaponView());
+  const [fpsRenderer] = useState(() => new FPSRenderer(camera));
+  const [multiplayer] = useState(() => new MultiplayerSync());
+
+  // Controls
   const controlsRef = useRef<Controls>({
     movement: { x: 0, y: 0 },
     aim: { x: 1, y: 0 },
@@ -86,7 +82,6 @@ export default function ShooterGame() {
     weaponSwitch: false,
   });
 
-  // Joystick states
   const [leftJoystick, setLeftJoystick] = useState<Joystick>({
     active: false,
     startPos: { x: 0, y: 0 },
@@ -105,67 +100,157 @@ export default function ShooterGame() {
 
   const touchesRef = useRef<Map<number, { id: number; side: 'left' | 'right' }>>(new Map());
 
+  // ===== MULTIPLAYER FUNCTIONS =====
+  const createRoom = async () => {
+    if (!playerName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+
+    try {
+      const code = await multiplayer.createRoom(playerName, matchSettings);
+      setRoomCode(code);
+      setGameScreen('lobby');
+      
+      // Subscribe to match updates
+      multiplayer.subscribeToMatch(handleMatchUpdate);
+    } catch (error) {
+      console.error('Failed to create room:', error);
+      alert('Failed to create room. Check Firebase config.');
+    }
+  };
+
+  const joinRoom = async () => {
+    if (!playerName.trim() || !inputCode.trim()) {
+      alert('Please enter your name and room code');
+      return;
+    }
+
+    try {
+      const success = await multiplayer.joinRoom(inputCode, playerName);
+      if (success) {
+        setRoomCode(inputCode.toUpperCase());
+        setGameScreen('lobby');
+        multiplayer.subscribeToMatch(handleMatchUpdate);
+      } else {
+        alert('Failed to join room');
+      }
+    } catch (error) {
+      console.error('Join error:', error);
+      alert('Failed to join room');
+    }
+  };
+
+  const handleMatchUpdate = (state: MultiplayerState) => {
+    // Update local player
+    const myPlayer = state.players[multiplayer.getPlayerId()];
+    if (myPlayer && localPlayer) {
+      setLocalPlayer(prev => prev ? { ...prev, ...myPlayer } : myPlayer);
+    } else if (myPlayer && !localPlayer) {
+      setLocalPlayer(myPlayer);
+    }
+
+    // Update other players
+    const others = Object.values(state.players).filter(p => p.id !== multiplayer.getPlayerId());
+    setOtherPlayers(others);
+
+    // Update bullets
+    setBullets(state.bullets);
+
+    // Update scores
+    setRedScore(state.redScore);
+    setBlueScore(state.blueScore);
+    setMatchTime(state.matchTime);
+
+    // Start game if match started
+    if (state.matchStarted && gameScreen === 'lobby') {
+      setGameScreen('playing');
+    }
+  };
+
+  const startMatch = async () => {
+    await multiplayer.startMatch();
+  };
+
   // ===== SHOOTING LOGIC =====
   const shoot = useCallback(() => {
-    if (!player || player.isDead || player.isReloading) return;
-    if (player.ammo <= 0) return;
+    if (!localPlayer || localPlayer.isDead || localPlayer.isReloading) return;
+    if (localPlayer.ammo <= 0) return;
 
     const now = Date.now();
-    const fireDelay = 1000 / player.currentWeapon.fireRate;
+    const fireDelay = 1000 / localPlayer.currentWeapon.fireRate;
+    if (now - localPlayer.lastShotTime < fireDelay) return;
 
-    if (now - player.lastShotTime < fireDelay) return;
-
-    const bullet = engine.createBullet(player, player.currentWeapon, controlsRef.current);
+    // Create bullet
+    const bullet = engine.createBullet(localPlayer, localPlayer.currentWeapon, controlsRef.current);
     if (bullet) {
-      setBullets(prev => [...prev, bullet]);
+      // Sync to multiplayer
+      multiplayer.shootBullet(bullet);
       
-      setPlayer(prev => ({
+      // Update local state
+      setLocalPlayer(prev => prev ? {
         ...prev,
         ammo: prev.ammo - 1,
         lastShotTime: now,
         consecutiveShots: prev.consecutiveShots + 1,
-      }));
+      } : null);
 
-      // Muzzle flash
-      setMuzzleFlash({ active: true, time: now });
-      setTimeout(() => setMuzzleFlash({ active: false, time: 0 }), 50);
+      // Visual effects
+      setShowMuzzleFlash(true);
+      setTimeout(() => setShowMuzzleFlash(false), 80);
+      
+      weaponView.triggerRecoil(localPlayer.currentWeapon.recoil);
+      camera.applyRecoil(localPlayer.currentWeapon.recoil / 2);
+
+      // Sync player state
+      if (localPlayer) {
+        multiplayer.updatePlayer({
+          ...localPlayer,
+          ammo: localPlayer.ammo - 1,
+          lastShotTime: now,
+        });
+      }
     }
-  }, [player, engine]);
+  }, [localPlayer, engine, multiplayer, weaponView, camera]);
 
   // Auto-reload
   useEffect(() => {
-    if (player.ammo === 0 && !player.isReloading && player.reserveAmmo > 0) {
+    if (localPlayer && localPlayer.ammo === 0 && !localPlayer.isReloading && localPlayer.reserveAmmo > 0) {
       startReload();
     }
-  }, [player.ammo]);
+  }, [localPlayer?.ammo]);
 
   const startReload = () => {
-    if (player.isReloading || player.reserveAmmo === 0) return;
-    if (player.ammo === player.currentWeapon.magazineSize) return;
+    if (!localPlayer || localPlayer.isReloading || localPlayer.reserveAmmo === 0) return;
+    if (localPlayer.ammo === localPlayer.currentWeapon.magazineSize) return;
 
-    setPlayer(prev => ({
+    setLocalPlayer(prev => prev ? {
       ...prev,
       isReloading: true,
       reloadStartTime: Date.now(),
-    }));
+    } : null);
 
     setTimeout(() => {
-      setPlayer(prev => {
+      setLocalPlayer(prev => {
+        if (!prev) return null;
         const ammoNeeded = prev.currentWeapon.magazineSize - prev.ammo;
         const ammoToAdd = Math.min(ammoNeeded, prev.reserveAmmo);
 
-        return {
+        const updated = {
           ...prev,
           ammo: prev.ammo + ammoToAdd,
           reserveAmmo: prev.reserveAmmo - ammoToAdd,
           isReloading: false,
           reloadStartTime: undefined,
         };
+
+        multiplayer.updatePlayer(updated);
+        return updated;
       });
-    }, player.currentWeapon.reloadTime);
+    }, localPlayer.currentWeapon.reloadTime);
   };
 
-  // ===== JOYSTICK HANDLING =====
+  // ===== TOUCH CONTROLS =====
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     e.preventDefault();
     const canvas = canvasRef.current;
@@ -220,7 +305,7 @@ export default function ShooterGame() {
           const dx = x - prev.startPos.x;
           const dy = y - prev.startPos.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          const maxDistance = 60;
+          const maxDistance = 80;
           const clampedDistance = Math.min(distance, maxDistance);
           
           const direction = distance > 0 
@@ -228,13 +313,9 @@ export default function ShooterGame() {
             : { x: 0, y: 0 };
 
           controlsRef.current.movement = direction;
+          controlsRef.current.isSprinting = distance > maxDistance * 0.8;
 
-          return {
-            ...prev,
-            currentPos: { x, y },
-            direction,
-            distance: clampedDistance,
-          };
+          return { ...prev, currentPos: { x, y }, direction, distance: clampedDistance };
         });
       } else {
         setRightJoystick((prev) => {
@@ -247,20 +328,10 @@ export default function ShooterGame() {
             : prev.direction;
 
           controlsRef.current.aim = direction;
-          
-          // Shoot when joystick pushed far enough
-          if (distance > 40) {
-            controlsRef.current.isShooting = true;
-          } else {
-            controlsRef.current.isShooting = false;
-          }
+          controlsRef.current.isShooting = distance > 50;
+          controlsRef.current.isAiming = distance > 30 && distance <= 50;
 
-          return {
-            ...prev,
-            currentPos: { x, y },
-            direction,
-            distance,
-          };
+          return { ...prev, currentPos: { x, y }, direction, distance };
         });
       }
     });
@@ -274,19 +345,13 @@ export default function ShooterGame() {
       if (!touchInfo) return;
 
       if (touchInfo.side === 'left') {
-        setLeftJoystick((prev) => ({
-          ...prev,
-          active: false,
-          direction: { x: 0, y: 0 },
-          distance: 0,
-        }));
+        setLeftJoystick((prev) => ({ ...prev, active: false, direction: { x: 0, y: 0 }, distance: 0 }));
         controlsRef.current.movement = { x: 0, y: 0 };
+        controlsRef.current.isSprinting = false;
       } else {
-        setRightJoystick((prev) => ({
-          ...prev,
-          active: false,
-        }));
+        setRightJoystick((prev) => ({ ...prev, active: false }));
         controlsRef.current.isShooting = false;
+        controlsRef.current.isAiming = false;
       }
 
       touchesRef.current.delete(touch.identifier);
@@ -295,334 +360,249 @@ export default function ShooterGame() {
 
   // ===== GAME LOOP =====
   const gameLoop = useCallback((timestamp: number) => {
-    if (!lastTimeRef.current) {
-      lastTimeRef.current = timestamp;
+    if (!localPlayer || gameScreen !== 'playing') {
+      requestRef.current = requestAnimationFrame(gameLoop);
+      return;
     }
 
+    if (!lastTimeRef.current) lastTimeRef.current = timestamp;
     const deltaTime = Math.min((timestamp - lastTimeRef.current) / 1000, 0.1);
     lastTimeRef.current = timestamp;
 
-    // Shoot if shooting button held
+    // Shoot
     if (controlsRef.current.isShooting) {
       shoot();
     }
 
-    // Reset consecutive shots
-    if (!controlsRef.current.isShooting && player.consecutiveShots > 0) {
-      setPlayer(prev => ({ ...prev, consecutiveShots: 0 }));
-    }
-
     // Update player
-    const updatedPlayer = engine.updatePlayer(player, controlsRef.current, deltaTime);
+    const updatedPlayer = engine.updatePlayer(localPlayer, controlsRef.current, deltaTime);
     
-    // Update bullets
-    const players = new Map([[player.id, updatedPlayer]]);
-    const { bullets: updatedBullets, hits } = engine.updateBullets(bullets, players, deltaTime);
+    // Check bullet hits
+    const allPlayers = new Map([[localPlayer.id, updatedPlayer], ...otherPlayers.map(p => [p.id, p] as [string, Player])]);
+    const { bullets: updatedBullets, hits } = engine.updateBullets(bullets, allPlayers, deltaTime);
     
     // Handle hits
-    let playerHealth = updatedPlayer.health;
     hits.forEach(hit => {
-      if (hit.playerId === player.id) {
-        playerHealth = Math.max(0, playerHealth - hit.damage);
+      if (hit.playerId === localPlayer.id) {
+        updatedPlayer.health = Math.max(0, updatedPlayer.health - hit.damage);
+        setHitMarker({ active: true, time: Date.now() });
+        setTimeout(() => setHitMarker({ active: false, time: 0 }), 200);
+      }
+      
+      if (hit.bulletOwnerId === localPlayer.id) {
+        setHitMarker({ active: true, time: Date.now() });
       }
     });
 
-    setPlayer({ ...updatedPlayer, health: playerHealth });
+    setLocalPlayer(updatedPlayer);
     setBullets(updatedBullets);
 
+    // Update camera & weapon
+    camera.update(updatedPlayer, controlsRef.current.isAiming, deltaTime);
+    weaponView.update(deltaTime, controlsRef.current.isShooting);
+
+    // Sync to multiplayer (throttled)
+    if (Math.random() < 0.1) { // 10% chance each frame
+      multiplayer.updatePlayer(updatedPlayer);
+    }
+
     // Render
-    render(updatedPlayer, updatedBullets);
+    render(updatedPlayer);
 
     requestRef.current = requestAnimationFrame(gameLoop);
-  }, [player, bullets, engine, shoot]);
+  }, [localPlayer, otherPlayers, bullets, gameScreen, engine, shoot, camera, weaponView, multiplayer]);
 
   // ===== RENDERING =====
-  const render = (currentPlayer: Player, currentBullets: Bullet[]) => {
+  const render = (player: Player) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
-    // Clear with dark background
-    ctx.fillStyle = '#0a0a0a';
+    // Clear
+    ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate camera
-    const cameraX = canvas.width / 2 - currentPlayer.position.x;
-    const cameraY = canvas.height / 2 - currentPlayer.position.y;
+    // Draw 3D world
+    fpsRenderer.drawWorld(ctx, mapData, player, otherPlayers, bullets, canvas.width, canvas.height);
 
-    ctx.save();
-    ctx.translate(cameraX, cameraY);
+    // Draw weapon in FPP
+    const cameraState = camera.getState();
+    weaponView.drawWeapon(
+      ctx,
+      player.currentWeapon,
+      controlsRef.current.isAiming,
+      player.isSprinting,
+      player.isReloading,
+      player.reloadStartTime ? (Date.now() - player.reloadStartTime) / player.currentWeapon.reloadTime : 0,
+      canvas.width,
+      canvas.height,
+      cameraState.recoil
+    );
 
-    // Draw map grid
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.lineWidth = 1;
-    for (let x = 0; x <= GAME_CONFIG.mapWidth; x += 100) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, GAME_CONFIG.mapHeight);
-      ctx.stroke();
-    }
-    for (let y = 0; y <= GAME_CONFIG.mapHeight; y += 100) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(GAME_CONFIG.mapWidth, y);
-      ctx.stroke();
-    }
-
-    // Draw obstacles
-    mapData.obstacles.forEach((obstacle) => {
-      if (obstacle.type === 'wall') {
-        ctx.fillStyle = '#2a2a2a';
-      } else if (obstacle.type === 'cover') {
-        ctx.fillStyle = '#3a3a3a';
-      } else {
-        ctx.fillStyle = '#8b4513';
-      }
-      ctx.fillRect(obstacle.position.x, obstacle.position.y, obstacle.width, obstacle.height);
-      
-      ctx.strokeStyle = '#111';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(obstacle.position.x, obstacle.position.y, obstacle.width, obstacle.height);
-    });
-
-    // Draw bullets
-    currentBullets.forEach((bullet) => {
-      // Bullet trail
-      ctx.save();
-      ctx.strokeStyle = '#fbbf24';
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.6;
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#fbbf24';
-      
-      const trailLength = 30;
-      const dx = -bullet.velocity.x / bullet.velocity.x * trailLength;
-      const dy = -bullet.velocity.y / bullet.velocity.y * trailLength;
-      
-      ctx.beginPath();
-      ctx.moveTo(bullet.position.x, bullet.position.y);
-      ctx.lineTo(bullet.position.x + dx, bullet.position.y + dy);
-      ctx.stroke();
-      ctx.restore();
-
-      // Bullet core
-      ctx.fillStyle = '#fff';
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#fbbf24';
-      ctx.beginPath();
-      ctx.arc(bullet.position.x, bullet.position.y, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    });
-
-    // Draw player
-    ctx.save();
-    ctx.translate(currentPlayer.position.x, currentPlayer.position.y);
-    
-    // Player body (tactical soldier)
-    ctx.save();
-    ctx.rotate(currentPlayer.rotation);
-    
-    // Body
-    ctx.fillStyle = '#1e3a8a';
-    ctx.fillRect(-12, -15, 24, 30);
-    
-    // Head
-    ctx.fillStyle = '#fbbf24';
-    ctx.beginPath();
-    ctx.arc(0, -20, 8, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Weapon
-    ctx.fillStyle = '#374151';
-    ctx.fillRect(10, -3, 25, 6);
-    ctx.fillRect(30, -5, 8, 10);
-    
     // Muzzle flash
-    if (muzzleFlash.active) {
-      ctx.fillStyle = '#fbbf24';
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = '#fbbf24';
-      ctx.beginPath();
-      ctx.moveTo(38, 0);
-      ctx.lineTo(48, -8);
-      ctx.lineTo(55, 0);
-      ctx.lineTo(48, 8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.shadowBlur = 0;
+    if (showMuzzleFlash) {
+      weaponView.drawMuzzleFlash(ctx, player.currentWeapon, canvas.width, canvas.height);
     }
-    
-    ctx.restore();
-    ctx.restore();
-
-    // Health bar above player
-    const barWidth = 50;
-    const barHeight = 6;
-    const barX = currentPlayer.position.x - barWidth / 2;
-    const barY = currentPlayer.position.y - currentPlayer.size - 25;
-
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
-    
-    const healthPercent = currentPlayer.health / currentPlayer.maxHealth;
-    ctx.fillStyle = healthPercent > 0.5 ? '#22c55e' : healthPercent > 0.25 ? '#f59e0b' : '#ef4444';
-    ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
-
-    ctx.restore();
 
     // Draw HUD
-    drawHUD(ctx, currentPlayer, canvas);
+    drawHUD(ctx, player, canvas.width, canvas.height);
     
     // Draw joysticks
     drawJoystick(ctx, leftJoystick, 'left');
     drawJoystick(ctx, rightJoystick, 'right');
   };
 
-  const drawJoystick = (ctx: CanvasRenderingContext2D, joystick: Joystick, side: 'left' | 'right') => {
-    if (!joystick.active) return;
-
-    const { startPos, direction, distance } = joystick;
-    const maxDistance = 60;
-
-    // Outer circle
-    ctx.strokeStyle = side === 'left' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(239, 68, 68, 0.3)';
-    ctx.fillStyle = side === 'left' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(startPos.x, startPos.y, maxDistance, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Inner stick
-    const stickX = startPos.x + direction.x * Math.min(distance, maxDistance);
-    const stickY = startPos.y + direction.y * Math.min(distance, maxDistance);
-    
-    ctx.fillStyle = side === 'left' ? 'rgba(59, 130, 246, 0.8)' : 'rgba(239, 68, 68, 0.8)';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = side === 'left' ? '#3b82f6' : '#ef4444';
-    ctx.beginPath();
-    ctx.arc(stickX, stickY, 30, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Center dot
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(stickX, stickY, 8, 0, Math.PI * 2);
-    ctx.fill();
-  };
-
-  const drawHUD = (ctx: CanvasRenderingContext2D, currentPlayer: Player, canvas: HTMLCanvasElement) => {
-    // Top-left: Health
+  const drawHUD = (ctx: CanvasRenderingContext2D, player: Player, w: number, h: number) => {
+    // Top bar
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(10, 10, 200, 60);
-    
+    ctx.fillRect(0, 0, w, 60);
+
+    // Health (top-left)
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Arial';
-    ctx.fillText('HEALTH', 20, 30);
+    ctx.fillText('HP', 20, 25);
     
-    const healthPercent = currentPlayer.health / currentPlayer.maxHealth;
+    const healthPercent = player.health / player.maxHealth;
     ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(20, 40, 180, 20);
+    ctx.fillRect(20, 30, 150, 20);
     ctx.fillStyle = healthPercent > 0.5 ? '#22c55e' : healthPercent > 0.25 ? '#f59e0b' : '#ef4444';
-    ctx.fillRect(20, 40, 180 * healthPercent, 20);
+    ctx.fillRect(20, 30, 150 * healthPercent, 20);
     
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(Math.round(currentPlayer.health).toString(), 110, 56);
+    ctx.fillText(Math.round(player.health).toString(), 95, 45);
     ctx.textAlign = 'left';
 
-    // Bottom-right: Ammo
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.fillRect(canvas.width - 160, canvas.height - 100, 150, 90);
+    // Score (top-center)
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    const scoreText = matchSettings.mode === 'TDM' 
+      ? `BLUE ${blueScore} - ${redScore} RED`
+      : `${player.kills} KILLS`;
+    ctx.fillText(scoreText, w / 2, 35);
     
-    ctx.fillStyle = currentPlayer.ammo === 0 ? '#ef4444' : '#fff';
-    ctx.font = 'bold 48px monospace';
+    ctx.font = '14px Arial';
+    const timeMin = Math.floor(matchTime / 60);
+    const timeSec = matchTime % 60;
+    ctx.fillText(`${timeMin}:${timeSec.toString().padStart(2, '0')}`, w / 2, 52);
+    ctx.textAlign = 'left';
+
+    // Kill feed (top-right)
+    ctx.font = '12px Arial';
+    killFeed.slice(-3).forEach((kill, i) => {
+      const opacity = 1 - (Date.now() - kill.time) / 5000;
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+      ctx.textAlign = 'right';
+      ctx.fillText(`${kill.killer} ☠ ${kill.victim}`, w - 20, 20 + i * 20);
+    });
+    ctx.textAlign = 'left';
+
+    // Ammo (bottom-right)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(w - 200, h - 120, 190, 110);
+    
+    ctx.fillStyle = player.ammo === 0 ? '#ef4444' : '#fff';
+    ctx.font = 'bold 56px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(currentPlayer.ammo.toString(), canvas.width - 20, canvas.height - 50);
+    ctx.fillText(player.ammo.toString(), w - 20, h - 50);
     
     ctx.fillStyle = '#888';
-    ctx.font = 'bold 20px monospace';
-    ctx.fillText(`/ ${currentPlayer.reserveAmmo}`, canvas.width - 20, canvas.height - 20);
+    ctx.font = 'bold 24px monospace';
+    ctx.fillText(`/ ${player.reserveAmmo}`, w - 20, h - 20);
     
-    // Weapon name
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'right';
-    ctx.fillText(currentPlayer.currentWeapon.name, canvas.width - 20, canvas.height - 75);
-    ctx.textAlign = 'left';
+    ctx.fillText(player.currentWeapon.name, w - 20, h - 85);
 
-    // Reload bar
-    if (currentPlayer.isReloading && currentPlayer.reloadStartTime) {
-      const progress = (Date.now() - currentPlayer.reloadStartTime) / currentPlayer.currentWeapon.reloadTime;
-      const barWidth = 300;
-      const barHeight = 8;
-      const barX = canvas.width / 2 - barWidth / 2;
-      const barY = canvas.height - 80;
-
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.fillRect(barX - 10, barY - 30, barWidth + 20, 50);
-      
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(barX, barY, barWidth, barHeight);
-      
-      ctx.fillStyle = '#fbbf24';
-      ctx.fillRect(barX, barY, barWidth * Math.min(progress, 1), barHeight);
-      
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('RELOADING...', canvas.width / 2, barY - 10);
-      ctx.textAlign = 'left';
-    }
-
-    // Crosshair (center)
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const crosshairSize = 15;
-    const gap = 5;
-    
-    ctx.strokeStyle = controlsRef.current.isShooting ? '#ef4444' : '#fff';
+    // Crosshair
+    const cx = w / 2;
+    const cy = h / 2;
+    ctx.strokeStyle = hitMarker.active ? '#ef4444' : controlsRef.current.isShooting ? '#fbbf24' : '#fff';
     ctx.lineWidth = 2;
-    ctx.shadowBlur = 3;
+    ctx.shadowBlur = 5;
     ctx.shadowColor = '#000';
-    
-    // Top
+
+    const size = controlsRef.current.isAiming ? 10 : 15;
+    const gap = controlsRef.current.isAiming ? 3 : 5;
+
     ctx.beginPath();
-    ctx.moveTo(centerX, centerY - gap);
-    ctx.lineTo(centerX, centerY - crosshairSize);
+    ctx.moveTo(cx, cy - gap);
+    ctx.lineTo(cx, cy - size);
+    ctx.moveTo(cx, cy + gap);
+    ctx.lineTo(cx, cy + size);
+    ctx.moveTo(cx - gap, cy);
+    ctx.lineTo(cx - size, cy);
+    ctx.moveTo(cx + gap, cy);
+    ctx.lineTo(cx + size, cy);
     ctx.stroke();
-    
-    // Bottom
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY + gap);
-    ctx.lineTo(centerX, centerY + crosshairSize);
-    ctx.stroke();
-    
-    // Left
-    ctx.beginPath();
-    ctx.moveTo(centerX - gap, centerY);
-    ctx.lineTo(centerX - crosshairSize, centerY);
-    ctx.stroke();
-    
-    // Right
-    ctx.beginPath();
-    ctx.moveTo(centerX + gap, centerY);
-    ctx.lineTo(centerX + crosshairSize, centerY);
-    ctx.stroke();
-    
     ctx.shadowBlur = 0;
 
-    // Center dot
-    ctx.fillStyle = controlsRef.current.isShooting ? '#ef4444' : '#fff';
+    // Hit marker
+    if (hitMarker.active) {
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx - 15, cy - 15);
+      ctx.lineTo(cx - 5, cy - 5);
+      ctx.moveTo(cx + 15, cy - 15);
+      ctx.lineTo(cx + 5, cy - 5);
+      ctx.moveTo(cx - 15, cy + 15);
+      ctx.lineTo(cx - 5, cy + 5);
+      ctx.moveTo(cx + 15, cy + 15);
+      ctx.lineTo(cx + 5, cy + 5);
+      ctx.stroke();
+    }
+
+    // Killstreak icons
+    if (killstreak >= 3) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(w - 100, h / 2 - 100, 80, 200);
+      
+      ctx.fillStyle = killstreak >= 3 ? '#22c55e' : '#4a5568';
+      ctx.fillText('⚡ UAV', w - 60, h / 2 - 70);
+      
+      ctx.fillStyle = killstreak >= 5 ? '#22c55e' : '#4a5568';
+      ctx.fillText('💥 STRIKE', w - 60, h / 2 - 30);
+      
+      ctx.fillStyle = killstreak >= 7 ? '#22c55e' : '#4a5568';
+      ctx.fillText('🚁 HELI', w - 60, h / 2 + 10);
+    }
+  };
+
+  const drawJoystick = (ctx: CanvasRenderingContext2D, joystick: Joystick, side: 'left' | 'right') => {
+    if (!joystick.active) return;
+
+    const maxDistance = 80;
+    const color = side === 'left' ? '#3b82f6' : '#ef4444';
+
+    ctx.strokeStyle = `${color}50`;
+    ctx.fillStyle = `${color}20`;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
+    ctx.arc(joystick.startPos.x, joystick.startPos.y, maxDistance, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    const stickX = joystick.startPos.x + joystick.direction.x * Math.min(joystick.distance, maxDistance);
+    const stickY = joystick.startPos.y + joystick.direction.y * Math.min(joystick.distance, maxDistance);
+    
+    ctx.fillStyle = `${color}CC`;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = color;
+    ctx.beginPath();
+    ctx.arc(stickX, stickY, 35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(stickX, stickY, 10, 0, Math.PI * 2);
     ctx.fill();
   };
 
-  // ===== LIFECYCLE =====
+  // Lifecycle
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -634,38 +614,87 @@ export default function ShooterGame() {
     };
   }, [gameLoop]);
 
-  return (
-    <div className="fixed inset-0 bg-black flex flex-col">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-3 flex items-center justify-between z-10">
-        <button
-          onClick={() => router.push('/games')}
-          className="flex items-center gap-2 text-white hover:text-red-400 transition-colors"
-        >
-          <ArrowLeft size={20} />
-          <span className="font-semibold">Exit</span>
-        </button>
-        <div className="text-white font-bold text-sm sm:text-base">
-          🎮 SHOOTER BETA - STAGE 2
-        </div>
-        <div className="text-green-400 font-mono text-xs sm:text-sm">
-          K: {player.kills} | D: {player.deaths}
-        </div>
-      </div>
+  const copyCode = () => {
+    navigator.clipboard.writeText(roomCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-      {/* Game Canvas */}
-      <div className="flex-1 relative overflow-hidden">
-        <canvas
-          ref={canvasRef}
-          width={typeof window !== 'undefined' ? window.innerWidth : 800}
-          height={typeof window !== 'undefined' ? window.innerHeight - 48 : 600}
-          className="w-full h-full touch-none"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
-        />
-      </div>
-    </div>
-  );
-    }
+  // ===== UI SCREENS =====
+  if (gameScreen === 'menu') {
+    return (
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-gray-800/90 backdrop-blur-sm border-2 border-blue-500/50 rounded-3xl p-8 shadow-2xl">
+            <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text text-transparent">
+              CALL OF DUTY
+            </h1>
+            <p className="text-center text-gray-400 mb-8">MOBILE MULTIPLAYER</p>
+
+            <input
+              type="text"
+              placeholder="Enter your name..."
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white mb-6 focus:outline-none focus:border-blue-500"
+            />
+
+            <div className="mb-6">
+              <label className="text-white text-sm mb-2 block">Game Mode:</label>
+              <select
+                value={matchSettings.mode}
+                onChange={(e) => setMatchSettings(prev => ({ ...prev, mode: e.target.value as 'TDM' | 'FFA' }))}
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="TDM">Team Deathmatch (TDM)</option>
+                <option value="FFA">Free-for-All (FFA)</option>
+              </select>
+            </div>
+
+            <div className="mb-6">
+              <label className="text-white text-sm mb-2 block">Max Players:</label>
+              <select
+                value={matchSettings.maxPlayers}
+                onChange={(e) => setMatchSettings(prev => ({ ...prev, maxPlayers: parseInt(e.target.value) }))}
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="2">1v1 (2 players)</option>
+                <option value="4">2v2 (4 players)</option>
+                <option value="6">3v3 (6 players)</option>
+                <option value="8">4v4 (8 players)</option>
+                <option value="10">5v5 (10 players)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={createRoom}
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-lg mb-4 hover:from-blue-500 hover:to-blue-400 transition-all flex items-center justify-center gap-2"
+            >
+              <Users size={20} />
+              CREATE ROOM
+            </button>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-gray-800 text-gray-400">or join existing</span>
+              </div>
+            </div>
+
+            <input
+              type="text"
+              placeholder="ROOM CODE"
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+              maxLength={6}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white text-center font-mono text-xl mb-4 focus:outline-none focus:border-red-500"
+            />
+
+            <button
+              onClick={joinRoom}
+              className="w-full py-4 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl font-bold text-lg hover:from-red-500 hover:to-red-400 transition-all"
+            >
+              JOIN ROOM
+            </button>
