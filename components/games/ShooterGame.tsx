@@ -15,8 +15,8 @@ import {
   Bullet
 } from '@/lib/shooterTypes';
 import { ShooterEngine } from '@/lib/shooterEngine';
-import { createDefaultMap } from '@/lib/shooterMap';
-import { WEAPONS } from '@/lib/weapons';
+import { createDefaultMap } from '@/lib/MapRenderer';
+import { WEAPONS } from '@/lib/codm/weapon3D';
 
 const GAME_CONFIG: GameConfig = {
   mapWidth: 2000,
